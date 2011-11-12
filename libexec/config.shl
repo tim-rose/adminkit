@@ -1,0 +1,94 @@
+#
+# CONFIG.SHL --Shell Library for processing config files.
+#
+# Contents:
+# config_filter()  --Filter config lines into simple shell assignments.
+# config_section() --Extract the definitions in a particular section of config.
+# load_config()    --Load config definitions for section from a file.
+#
+# Remarks:
+# This library contains routines for processing classic/common "INI" style
+# config files.  The low-level routines filter sections and adapt INI's
+# looser syntax into something that the shell will accept, so that the
+# lines can be eval'd, and interned into real shell variables.
+#
+#
+. core.shl 
+if lib_loaded _config_sh $_config_sh; then return; fi
+. log.shl
+
+CONFIGPATH=${CONFIGPATH:-.:$HOME:/usr/local/etc:/etc}
+
+#
+# config_filter() --Filter config lines into simple shell assignments.
+#
+# Parameters:
+# prefix	--specifies a prefix to apply to each variable
+#
+# Output:
+# Shell assignment statements (I hope!)
+#
+# Remarks:
+# This is the low-level routine for munging INI into a more
+# shell-compatible syntax:
+#  * strip comments, leading/trailing space characters
+#  * delete empty lines
+#  * strip space characters around the '='
+#  * wrap values containing ' ' with quotes, if not already done
+#
+config_filter()
+{
+    sed -e 's/#.*//' \
+	-e '/^[ 	]*$/d' \
+	-e "s/^[ 	]*/$1/" \
+	-e 's/[ 	]*$//' \
+	-e 's/[ 	]*=[ 	]*/=/' \
+	-e "/=[^'\"].*[ 	]/s/=\(.*\)/='\1'/" # assignment cleanups
+}
+
+#
+# config_section() --Extract the definitions in a particular section of config.
+#
+# Parameters:
+# file		--specifies the configuration file
+# section	--specifies the section to load
+# prefix	--specifies a prefix to apply to all definitions (optional)
+#
+# Remarks:
+# This routine simply prints the chunk of config-file lines for the
+# specified section, with some attempt at making the definitions
+# conform to shell syntax.
+#
+config_section()
+{
+    if match "$1" '[./]*'; then
+	_path=$1
+    else
+	_path=$(resolve_path ${CONFIGPATH} $1)
+    fi
+    if [ ! "$_path" ]; then
+	return;
+    fi;
+    debug 'config_section: %s[%s], prefix="%s")' $_path $2 $3
+    sed -ne "/^[[]$2[]]\$/,\$p" <$_path | # start of section
+        sed -e 1d -e '/^[[]/,$d' | 	  # end of section
+	config_filter $3
+}
+
+#
+# load_config() --Load config definitions for section from a file.
+#
+# Parameters:
+# file		--specifies the configuration file
+# section	--specifies the configuration section
+#
+# Remarks:
+# This is the main entrypoint for loading configuration settings.  It
+# loads default values from a '[default]' section (if any), followed
+# by the requested section.
+#
+load_config()
+{
+    eval $(config_section $1 default $3)
+    eval $(config_section $*)
+}

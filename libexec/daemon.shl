@@ -1,0 +1,140 @@
+#!/bin/sh
+#
+# DAEMON.SHL --Shell Library for daemon scripts.
+#
+# Contents:
+# daemonize()       --Become a daemon process.
+# snooze()          --sleep for the specified time, or until interrupted.
+# remove_lock()     --Remove the singleton lock file.
+# end_singleton()   --Remove the lock file created by begin_singleton.
+# begin_singleton() --Begin running as a singleton process.
+#
+# Remarks:
+# This library contains routines useful for daemon/background processes.
+#
+#
+. core.shl
+if lib_loaded _daemon_sh $_daemon_sh; then return; fi
+. log.shl
+_daemon_lock_id=$(basename $0)-${LOGNAME:-$USER} # default lockfile ID
+
+#
+# daemonize() --Become a daemon process.
+#
+# Remarks:
+# The essential elements of becoming a daemon are to "move away" from
+# resources that could tangle us with other processes.
+# 
+daemonize()
+{
+    cmd=$1; shift
+    export LOG_OUTPUT=syslog
+    info 'daemonize(%s)' $cmd
+    (
+	cd /;				# cd away from unmountable systems
+	$cmd "$@" <&- 1<&- 2<&-	&	# run with stdio closed
+    )
+e    exit 0				# parent exits
+}
+
+#
+# proc_children() return a list of children processes.
+#
+# Remarks:
+# This will return some spurious pids, being the command(s)
+# involved in the calculation (i.e. ps)
+# REVISIT: use $!, dummy!
+#
+proc_children()
+{
+    ps -oppid,pid | grep "^ *$1" | sed -e 's/^[0-9]* //'
+}
+
+#
+# snooze() --sleep for the specified time, or until interrupted.
+#
+# Parameter:
+# $1	--the number of seconds to snooze for.
+#
+# Returns: false, if interrupted.
+#
+snooze()
+{
+    sleep $1 &
+    if ! wait; then
+	kill $(proc_children $$) >/dev/null 2>/dev/null
+	return 1		# false
+    fi
+    return 0			# true
+}
+
+#
+# remove_lock() --Remove the singleton lock file.
+#
+remove_lock() 
+{ 
+    rm -f "$1"
+}
+
+#
+# end_singleton() --Remove the lock file created by begin_singleton.
+#
+# Remarks:
+# This is actually a dummy/NOP function; the real thing gets defined
+# by begin_singleton, once the lock file name is known.
+#
+end_singleton() { :; }
+
+#
+# begin_singleton() --Begin running as a singleton process.
+#
+# Parameter:
+# $1	--the singleton lock-file (optional)
+#
+# Remarks:
+# The singleton lock file contains the PID of the caller, because
+# this is useful for detecting stale locks, and also makes it useful
+# as a simple PID file (e.g. /var/run/name.pid)
+#
+# This function is a little unsual: it defines some traps and
+# a function for removing the lock file.
+#
+begin_singleton()
+{
+    if [ "$1" ]; then
+	_daemon_lock_file="$1"
+    else
+	_daemon_lock_file=${TMPDIR:-/tmp}/$_daemon_lock_id.lock
+    fi
+
+    info 'begin_singleton: %s' $_daemon_lock_file
+
+    if [ -f $_daemon_lock_file ]; then	# check for stale lock
+	if ! kill -0 $(cat $_daemon_lock_file) 2>/dev/null; then
+	    warning '%s: stale lockfile  (process %d is not running)' \
+		$_daemon_lock_file $(cat $_daemon_lock_file)
+	    rm -f -- $_daemon_lock_file
+	fi
+    fi
+    
+    if ! lockfile -r0 $_daemon_lock_file >/dev/null 2>&1; then
+	err '%s: process is already running' $_daemon_lock_file
+	exit 0
+    fi
+    chmod u+w $_daemon_lock_file # write pid to lockfile
+    echo $$ >$_daemon_lock_file
+    chmod 444 $_daemon_lock_file
+    #
+    # end_singleton() --Remove the lock file created by begin_singleton.
+    #
+    # Remarks:
+    # Note: this function is defined within/by begin_singleton() (!!!)
+    #
+    end_singleton()
+    {
+	info 'end_singleton: %s' $_daemon_lock_file
+	rm -f -- $_daemon_lock_file
+
+    }
+    trap "rm -f -- $_daemon_lock_file" INT QUIT TERM EXIT
+}

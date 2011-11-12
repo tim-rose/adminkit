@@ -1,0 +1,248 @@
+#!/bin/sh
+#
+# GETOPT.SHL --Shell module for processing command-line options.
+#
+# Contents:
+# getopt_short()      --Echo the short-form of a getopt-spec.
+# getopt_long()       --Echo the long-form of a getopt-spec.
+# getopt_defaults()   --Echo the default values from a getopt-spec.
+# getopt_var()        --Echo the variable name for a one-character option.
+# getopt_long_var()   --Echo the variable name for a long option.
+# getopt_usage()      --Print a usage summary of the options.
+# getopt_short_args() --Process "short" CLI-line options using a getopt-spec.
+# getopt_long_args()  --Process command-line options using a getopt-spec.
+#
+# Remarks:
+# This module drives getopt-style processing from a "getopt-spec", which
+# is a variation on the GNU-longopts spec:
+#  * comma-separated items
+#  * name syntax: short-opt.long-opt (e.g. d.delay,t.timeout,h.host, etc.)
+#  * default specified by "=value" suffix (e.g. d.delay=10)
+#
+# e.g. "d.delay=10,t.timeout=120,h.host=localhost:80,q.quiet,v.verbose"
+#
+# Options are processed into shell assignment statements, which are
+# then eval'd into the shell environment by the caller, so the
+# long-opt name effectively becomes a shell variable that can be used
+# directly.
+#
+# Example:
+# Typical usage is to eval the output from getopt_args and print a
+# usage message if there was an error:
+# 
+# > my_opts="d.delay=10,t.timeout=120,h.host=localhost:80,q.quiet,v.verbose"
+# > my_usage() { 
+# >     echo "Usage: my_program [options] files...";
+# >     getopt_usage "$1"
+# > }
+# > eval $(getopt_args -d "$my_opts" "$@" || my_usage "$my_opts" >&2)
+#
+#
+. core.shl
+if lib_loaded _getopt_sh $_getopt_sh; then return; fi
+
+. log.shl
+
+#
+# getopt_short() --Echo the short-form of a getopt-spec.
+#
+# Parameter:
+# $1	--the getopt-spec
+#
+getopt_short()
+{
+    echo "$1" | sed -e 's/=[^;]*/:/g' -e 's/[.][^:;]*//g' -e 's/;//g'
+}
+
+#
+# getopt_long() --Echo the long-form of a getopt-spec.
+#
+# Parameter:
+# $1	--the getopt-spec
+#
+getopt_long()
+{
+    echo "$1" | sed -e 's/=[^;]*/:/g' -e 's/_/-/g' \
+	-e 's/^.[.]//g' -e 's/;.[.]/,/g'
+}
+
+#
+# getopt_defaults() --Echo the default values from a getopt-spec.
+#
+# Parameter:
+# $1	--the getopt-spec
+#
+# Returns:
+# A series of shell assignment statements.
+#
+getopt_defaults()
+(
+    IFS=';'
+    for spec in $1; do
+	echo "$spec"
+    done  | sed -ne 's/^.[.]//' -e 's/=/="/'  -e '/=/s/$/";/p'
+)
+
+#
+# getopt_var() --Echo the variable name for a one-character option.
+#
+# Parameters:
+# $1	--the getopt-spec
+# $2	--the short option character of the variable to extract
+#
+# Remarks:
+# If the variable's spec assigns a value, the trailing '=' will remain.
+#
+getopt_var()
+(
+    IFS=';'
+    for spec in $1; do
+	echo "$spec"
+    done | sed -ne 's/=.*/=/' -e "/^$2[.]/s/.[.]//p"
+
+)
+
+#
+# getopt_long_var() --Echo the variable name for a long option.
+#
+# Parameters:
+# $1	--the getopt-spec
+# $2	--the long option character of the variable to extract
+#
+getopt_long_var()
+{
+    IFS=';'
+    for spec in $1; do
+	echo "$spec" 
+    done | sed -ne 's/=.*/=/' -e "/^.[.]$2/s/.[.]//p"
+}
+
+#
+# getopt_usage() --Print a usage summary of the options.
+#
+# Parameter:
+# $1	--the usage prologue summary
+# $2	--the getopt-spec
+#
+# Remarks:
+# This routine prints summary of the getopt-spec's variables and default
+# values in a format that could be used as part of a usage message.
+#
+getopt_usage()
+(
+    printf "Usage:\n    %s\nOptions:\n" "$1"
+    IFS=';'
+    for spec in $2; do
+	debug 'spec: %s' "$spec"
+	opt=$(echo $spec | sed -e 's/[.].*//')
+	var=$(echo $spec | sed -e 's/.[.]//' -e 's/_/-/g' -e 's/=.*//')
+	value=$(echo $spec | sed -e 's/[^=]*=//')
+	debug 'opt: %s, var: %s, value: %s' "$opt" "$var" "$value"
+	case "$spec" in
+	    *=)
+		printf "    -%s <%s>\n" "$opt" "$var" ;;
+	    *=*)
+	    	printf "    -%s <%s>\t(default: \"%s\")\n" \
+		    "$opt" "$var" "$value";;
+	    *)
+	    	printf "    -%s\tset %s flag\n" "$opt" "$var";;
+        esac
+    done
+    if [ "$3" ]; then
+	printf "\n%s\n" "$3"
+    fi
+)
+
+#
+# getopt_short_args() --Process "short" CLI-line options using a getopt-spec.
+#
+# Parameters:
+# [-d]	--process default values too.
+# $1	--the getopt-spec
+# $*	--the options to be parsed.
+#
+# Returns:
+# Success: true; Failure: false.
+#
+# Remarks:
+# This is a simpler version of getopt_args() that only works with
+# the short options.  It uses the shell's "getopts" builtin.
+#
+getopt_args()
+{
+    if match "$1" '[-]d'; then	# output default value assignments
+	getopt_defaults "$2"
+	shift;
+    fi
+    _opts=$1; shift;
+    _opts_short=$(getopt_short "$_opts")
+
+    while getopts $_opts_short opt; do
+	if [ "$opt" = '?' ]; then
+	    echo 'exit 2;'	# trick eval-er to exit!
+	    return 1		# failure
+	else
+	    var=$(getopt_var "$_opts" $opt)
+	    if match "$var" '*='; then
+		echo "$var\"$OPTARG\";"
+	    else
+		echo "$var=1;"
+	    fi
+	fi
+    done
+    echo "OPTIND=$OPTIND"	# tell caller how many options were processed
+}
+
+#
+# getopt_long_args() --Process command-line options using a getopt-spec.
+#
+# Parameters:
+# [-d]	--process default values too.
+# $1	--the getopt-spec
+# $*	--the options to be parsed.
+#
+# Returns:
+# Success: true; Failure: false.
+#
+# Remarks:
+# This routine processes the getopt-spec into a list of shell variable
+# assignment statements, which it echoes to stdout.  It uses the getopts
+# builtin to grind through the arguments.  If getopts fails, it will append
+# "exit 2" to the output.  So, when eval'd, the output of this routine
+# will "internalise" the long-opts into shell variables, and possibly
+# force the caller to exit on errors.
+#
+getopt_long_args()
+{
+    if match "$1" '[-]d'; then	# output default value assignments
+	getopt_defaults "$2"
+	shift;
+    fi
+    _opts=$1; shift;
+    _opts_args=$(getopt -o $(getopt_short "$_opts") \
+    	--longoptions $(getopt_long "$_opts") -- "$@")
+    if [ $? != 0 ]; then
+	echo 'exit 2;'
+	return 1
+    fi
+#    debug '_opt_args: <<%s>>' "$_opts_args"
+    eval "set -- $_opts_args"	# re-jig our arguments via getopt
+    while true; do
+	_opt_v=$(echo "x$1" | sed -e 's/^x-*//' -e 's/-/_/g')
+	var=
+	case "$1" in
+	    --)		break;;	# explicit end of options
+	    --*)        var=$(getopt_long_var "$_opts" $_opt_v);;
+	    -*)	        var=$(getopt_var "$_opts" $_opt_v);;
+	    *)		break;;	# implicit end of options
+	esac
+	if match $var "*="; then
+	    echo "$var'$2';"
+	    shift 2;
+	elif [ "$var" ]; then
+	    echo "$var=1;"
+	    shift 1;
+	fi
+    done
+    echo "set" "$@" ";"	# force caller to reset their arguments
+}

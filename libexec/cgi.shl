@@ -1,0 +1,172 @@
+g#!/bin/sh
+#
+# CGI.SHL --Library of CGI functions for shell programs.
+#
+# Contents:
+# html_tag()       --Emit a HTML tag, with attributes.
+# html_end_tag()   --Emit a HTML end-tag.
+# html_empty_tag() --Emit an empty (X)HTML tag, with attributes.
+# html_tag_block() --Emit a properly enclosed (X?)HTML tag block.
+# start_html()     --Start the HTML,HEAD,BODY tags for a document.
+# end_html()       --End the BODY,HTML tags for a document.
+# h1()             --Convenience functions for emitting block elements.
+# table_header()   --Output a <thead> section with the supplied column names.
+# url_params()     --Return the list of unique parameters from the query string.
+# url_param()      --Return the value(s) for a particular query parameter.
+# on-load()        --Process the query string into some special variables
+#
+#
+. core.shl
+. log.shl
+if lib_loaded _cgi_sh $_cgi_sh; then return; fi
+
+_cgi_http_printed=
+_cgi_http_body=
+
+http_header()
+{
+    _cgi_http_type="text/html"
+    _cgi_http_charset="ISO-8859-1"
+    echo "Content-Type: $_cgi_http_type; charset=$_cgi_http_charset"
+    echo ""
+    _cgi_http_printed=1
+}
+
+#
+# html_tag() --Emit a HTML tag, with attributes.
+#
+html_tag()
+{
+    _cgi_tag=$1; shift
+    _cgi_attr=
+    while [ $# -gt 0 ]; do
+        _cgi_attr="$_cgi_attr $1=\"$2\""
+	shift 2;
+    done
+    echo "<$_cgi_tag$_cgi_attr>"
+}
+
+#
+# html_end_tag() --Emit a HTML end-tag.
+#
+html_end_tag()
+{
+    echo "</$1>"
+}
+
+#
+# html_empty_tag() --Emit an empty (X)HTML tag, with attributes.
+#
+html_empty_tag()
+{
+    _cgi_tag=$1; shift
+    _cgi_attr=
+    while [ $# -gt 0 ]; do
+        _cgi_attr="$_cgi_attr $1=\"$2\""
+	shift 2;
+    done
+    echo "<$_cgi_tag$_cgi_attr/>"
+}
+
+#
+# html_tag_block() --Emit a properly enclosed (X?)HTML tag block.
+#
+html_tag_block()
+{
+    _cgi_tag=$1; shift
+    echo "<$_cgi_tag>" $* "</$_cgi_tag>"
+}
+
+#
+# start_html() --Start the HTML,HEAD,BODY tags for a document.
+#
+start_html()
+{
+    if [ ! "$_cgi_http_printed" ]; then http_header; fi
+    echo "<html><head>"
+    echo "<title>" $* "</title>"
+    echo "</head><body>"
+}
+
+#
+# end_html() --End the BODY,HTML tags for a document.
+#
+end_html()
+{
+    echo "</body></html>"
+}
+
+#
+# h1() --Convenience functions for emitting block elements.
+#
+h1() { html_tag_block h1 $*; }
+h2() { html_tag_block h2 $*; }
+h3() { html_tag_block h3 $*; }
+h4() { html_tag_block h4 $*; }
+h5() { html_tag_block h5 $*; }
+
+p() { html_tag_block p $*; }
+span() { html_tag_block span $*; }
+div() { html_tag_block div $*; }
+table() { html_tag_block table $*; }
+tr() { html_tag_block tr $*; }
+td() { html_tag_block td $*; }
+th() { html_tag_block th $*; }
+
+li() { html_tag_block li $*; }
+dt() { html_tag_block dt $*; }
+dd() { html_tag_block dd $*; }
+
+start_p() { html_tag 'p' "$@"; }
+end_p() { echo '</p>'; }
+start_span() { html_tag 'span' "$@"; }
+end_span() { echo '</span>'; }
+start_div() { html_tag 'div' "$@"; }
+end_div() { echo '</div>'; }
+start_table() { html_tag 'table' "$@"; }
+end_table() { echo '</table>'; }
+start_tr() { html_tag 'tr' "$@"; }
+end_tr() { echo '</tr>'; }
+
+#
+# table_header() --Output a <thead> section with the supplied column names.
+#
+table_header()
+{
+    echo '<thead><tr>'
+    for _cgi_col in "$@"; do
+	echo '<th>' $_cgi_col '</th>'
+    done
+    echo '</tr></thead>'
+}
+
+#
+# url_params() --Return the list of unique parameters from the query string.
+#
+url_params()
+{
+    str_split '&;' $QUERY_STRING | sed -e 's/=.*//' | sort -u
+}
+
+#
+# url_param() --Return the value(s) for a particular query parameter.
+#
+url_param()
+{
+    str_split '&;' $QUERY_STRING | grep "^$1=" | sed -e 's/^[^=]*=//'
+}
+
+#
+# on-load() --Process the query string into some special variables
+#
+if [ "$REQUEST_METHOD" = "POST" ]; then
+    POST_QUERY_STRING=$(dd bs=1 count=$CONTENT_LENGTH 2>/dev/null)
+fi
+if [ $# -ne 0 ]; then
+    QUERY_STRING=$(echo $*| sed -e 's/ /;/g')
+fi
+if [ "$QUERY_STRING" ]; then
+    QUERY_STRING="$QUERY_STRING;$POST_QUERY_STRING"
+else
+    QUERY_STRING="$POST_QUERY_STRING"
+fi

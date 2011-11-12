@@ -1,0 +1,249 @@
+#!/bin/sh
+#
+# LOG.SHL --Shell Library code for logging to stderr/syslog.
+#
+# Contents:
+# _log_init()         --Initialise variables used to render stderr messages.
+# _log_level_number() --Return the numeric code for a log level.
+# _log_level_name()   --Return the textual name for a log level.
+# _log_level_color()  --Return the rendering color for a log level.
+# _log_context()      --Return a "context" line that includes the severity.
+# log_msg()           --Log a message to stderr or syslog.
+# log_quit()          --Log a message and quit.
+# emerg()             --Log an emergency message.
+# log_getopts()       --Set the logging options based on variables set by LOG_GETOPTS.
+#
+# Remarks:
+# This library provides some customisation over logging facilities that
+# allows a program to log to either stderr or syslog, with some filtering
+# based on the "log level".
+# 
+# If an argument is supplied when sourcing this library, it will be
+# used/saved as LOG_IDENT.
+#
+#
+. core.shl 
+if lib_loaded _log_sh $_log_sh; then return; fi
+
+#
+# We define some variables here that control the default behaviour
+# of the logging system.  Note that they are exported, so that they
+# will be honoured by sub-processes.
+#
+export LOG_OUTPUT; LOG_OUTPUT=${LOG_OUTPUT:-stderr}
+export LOG_LEVEL; LOG_LEVEL=${LOG_LEVEL:-notice}
+export LOG_FACILITY; LOG_FACILITY=${LOG_FACILITY:-user}
+USER=${USER:-$LOGNAME}
+USER=${USER:-nobody}
+export LOG_IDENT; LOG_IDENT=${LOG_IDENT:-${0:-$USER}}
+#export LOG_COLORS;
+#export LOG_TIMESTAMP; LOG_TIMESTAMP='%b %d %H:%M:%S'
+LOG_GETOPTS="q.quiet;v.verbose;_.debug" # Note: not exported!
+LOG_PID=$$				# Note: not exported!
+_log_status=1				# exit status for log_quit
+
+#
+# _log_init() --Initialise variables used to render stderr messages.
+#
+# Remarks:
+# If the current stderr is not a tty, the variables remain undefined.
+# The stderr-reporting logic relies on this.
+#
+_log_init()
+{
+    if [ "$(tty <&2)" != "not a tty" ]; then
+	_log_ifs="$IFS"
+	IFS=:
+	for level in $LOG_COLORS; do
+	    echo $level | sed -e 's/^/_log_attr_/' -e 's/=/="/' -e 's/$/"/'
+	done
+	IFS="$_log_ifs"
+    fi
+}
+eval $(_log_init)		# apply/import the variable definitions...
+
+#
+# _log_level_number() --Return the numeric code for a log level.
+#
+_log_level_number()
+{
+    case $1 in
+    (7|emerg)	echo 7;;
+    (6|alert)	echo 6;;
+    (5|crit)	echo 5;;
+    (4|err)	echo 4;;
+    (3|warning)	echo 3;;
+    (2|notice)	echo 2;;
+    (1|info)	echo 1;;
+    (0|debug)	echo 0;;
+    (*)		echo 7;;
+    esac
+}
+
+#
+# _log_level_name() --Return the textual name for a log level.
+#
+_log_level_name()
+{
+    case $1 in
+    (7|emerg)	echo 'emerg';;
+    (6|alert)	echo 'alert';;
+    (5|crit)	echo 'crit';;
+    (4|err)	echo 'err';;
+    (3|warning)	echo 'warning';;
+    (2|notice)	echo 'notice';;
+    (1|info)	echo 'info';;
+    (0|debug)	echo 'debug';;
+    (*)		echo 'unknown';;
+    esac
+}
+
+#
+# _log_level_color() --Return the rendering color for a log level.
+#
+_log_level_color()
+{
+    case $1 in
+    (7|emerg)	echo $_log_attr_emerg;;
+    (6|alert)	echo $_log_attr_alert;;
+    (5|crit)	echo $_log_attr_crit;;
+    (4|err)	echo $_log_attr_err;;
+    (3|warning)	echo $_log_attr_warning;;
+    (2|notice)	echo $_log_attr_notice;;
+    (1|info)	echo $_log_attr_info;;
+    (0|debug)	echo $_log_attr_debug;;
+    esac
+}
+
+#
+# _log_context() --Return a "context" line that includes the severity.
+#
+# Parameter:
+# $1	--the severity
+#
+# Remarks:
+# This only works for bash!
+#
+_log_context()
+{
+    caller 2 | sed -e "s/\([^ ]*\) *\([^ ]*\) *\(.*\)/\2:\3:\1: $1:/"
+}
+
+#
+# log_msg() --Log a message to stderr or syslog.
+#
+# Parameters:
+# $1	--the priority at which to log
+# ...	--the message as printf(1) arguments
+#
+# Remarks:
+# In addition to printing the message, this code adds some prefix
+# information to make the output a little more consistent and easy
+# to process.  In particular, the priority of the message is printed,
+# with a prefix that can include the date of the message.
+#
+# Note that to simulate syslog's date format, set LOG_TIMESTAMP
+# to '%b %d %H:%M:%S'.
+#
+log_msg()
+{
+    _log_level=$(_log_level_number $1)
+    if [ $_log_level -lt $(_log_level_number $LOG_LEVEL) ]; then
+	return;
+    fi
+    _log_priority=$(_log_level_name $1); shift
+    _log_prefix=
+    if [ "$1" = '-c' ]; then
+	shift;				# provide developer context
+	_log_prefix=$(_log_context $_log_priority)
+    fi
+    if [ ! "$_log_prefix" ]; then
+	_log_prefix="$_log_priority:"
+    fi
+
+    _log_msg=$(printf "$@")
+    case "$LOG_OUTPUT" in
+    *syslog*)			# send to syslog
+	logger -t "${LOG_IDENT}[$LOG_PID]" \
+	    -p ${LOG_FACILITY}.${_log_priority} \
+	    "$_log_prefix $_log_msg" 
+	;;
+    *stderr*)			# display to stderr, w/ possible highlighting
+	if [ "$LOG_TIMESTAMP" ]; then
+	    _log_prefix="$(date "+$LOG_TIMESTAMP") $_log_prefix"
+	fi
+	_log_color=$(_log_level_color $_log_level)
+	if [ "$_log_color" ]; then
+	    printf "\033[%sm%s\033[m\n" \
+		$_log_color "$_log_prefix $_log_msg" >&2
+	else
+	    echo "$_log_prefix $_log_msg" >&2
+	fi
+	;;
+    *xterm*)			# display in xterm's title-bar and icon text!
+	printf "\033]1;%s\007" "$_log_msg" >/dev/tty
+	printf "\033]2;%s\007" "$_log_msg" >/dev/tty
+	;;
+    #
+    # growl is a Mac-only system, but there are similar systems for
+    # Linux (gnotify?) and Windows (???)
+    #
+    # *growl*)
+    # 	_log_level=$((5 - $_log_level))	# adjust log-level for growl...
+    # 	if [ $_log_level -gt 2 ]; then
+    # 	    _log_level=2
+    # 	fi
+    # 	_log_growl_opts="-p $_log_level -d $LOG_IDENT"
+    # 	if [ "$LOG_ICON" ]; then
+    # 	    _log_growl_opts="$_log_growl_opts -a $LOG_ICON"
+    # 	fi	    
+    # 	growlnotify $_log_growl_opts -m "$_log_msg" "$LOG_IDENT $_log_priority"
+    # 	;;
+    *)  ;;			# default: silently do nothing.
+    esac
+}
+
+#
+# log_quit() --Log a message and quit.
+#
+log_quit()
+{
+    log_msg err "$@"
+    exit $_log_status
+}
+
+#
+# emerg() --Log an emergency message.
+#
+emerg()   { log_msg emerg   "$@"; }
+alert()   { log_msg alert   "$@"; }
+crit()    { log_msg crit    "$@"; }
+err()     { log_msg err     "$@"; }
+warning() { log_msg warning "$@"; }
+notice()  { log_msg notice  "$@"; }
+info()    { log_msg info    "$@"; }
+debug()   { log_msg debug   "$@"; }
+
+trace_emerg()   { log_msg emerg -c   "$@"; }
+trace_alert()   { log_msg alert -c   "$@"; }
+trace_crit()    { log_msg crit -c    "$@"; }
+trace_err()     { log_msg err -c     "$@"; }
+trace_warning() { log_msg warning -c "$@"; }
+trace_notice()  { log_msg notice -c  "$@"; }
+trace_info()    { log_msg info -c    "$@"; }
+trace_debug()   { log_msg debug -c   "$@"; }
+
+#
+# log_getopts() --Set the logging options based on variables set by LOG_GETOPTS.
+#
+# Remarks:
+# This routine assumes that script-variables have been set via the getopts
+# system, using the LOG_GETOPTS definition.
+# 
+log_getopts()
+{
+    if   [ "$quiet" ];   then LOG_LEVEL=warning;
+    elif [ "$verbose" ]; then LOG_LEVEL=info;
+    elif [ "$debug" ];   then LOG_LEVEL=debug;
+    fi
+}

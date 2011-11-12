@@ -1,0 +1,122 @@
+#!/bin/sh
+#
+# UNIT.SHL --Unit conversion functions for option parsing
+#
+# Contents:
+# opt_duration() --Parse a simple duration specification.
+# opt_velocity() --Parse a velocity specification.
+# opt_distance() --Parse a distance specification.
+#
+# Remarks:
+# This module provides conversion functions for the SI units, and
+# common non-standard units too.
+#
+#
+#
+. core.shl
+if lib_loaded _unit_sh $_unit_sh; then return; fi
+
+. log.shl
+
+#
+# opt_duration() --Parse a simple duration specification.
+#
+opt_duration()
+{
+    OPTIND=1
+    _duration_precision=0
+    while getopts 'p:' opt; do
+	case $opt in
+	    p) _duration_precision="$OPTARG";;
+	esac
+    done
+    shift $(($OPTIND - 1))
+    _duration_unit=$(echo "$1" | sed -e 's/[-.0-9]* *//g')
+    _duration_amount=$(echo "$1" | sed -e 's/\([-.0-9]*\).*/\1/g')
+    case $_duration_unit in
+    '')	    _duration_unit=1;;
+    s)	    _duration_unit=1;;
+    M)	    _duration_unit=60;;
+    [Hh])   _duration_unit=3600;;
+    [Dd])   _duration_unit=$((24*3600));;
+    w) 	    _duration_unit=$((7*24*3600));;
+    m)	    _duration_unit=$((30*24*3600));; # approx
+    y)	    _duration_unit=$((365*24*3600));; # approx
+    *)
+	    err 'unrecognised duration "%s"' "$1"
+	    echo 0
+	    return 1
+	    ;;
+    esac
+    {
+    	echo "scale=$_duration_precision";
+    	echo "$_duration_unit * $_duration_amount";
+    } | bc 
+}
+
+#
+# opt_velocity() --Parse a velocity specification.
+#
+opt_velocity()
+{
+    OPTIND=1
+    _velocity_precision=0
+    while getopts 'p:' opt; do
+	case $opt in
+	    p) _velocity_precision="$OPTARG";;
+	esac
+    done
+    shift $(($OPTIND - 1))
+    _velocity_unit=$(echo $1|sed -e 's/[-.0-9]* *//g')
+    _velocity_amount=$(echo $1|sed -e 's/\([-.0-9]*\).*/\1/g')
+
+    case "$_velocity_unit" in
+    '')	    _velocity_unit=1;;
+    m/s)	    _velocity_unit=1;;
+    kph|km/h)	    _velocity_unit=1/3.6;;
+    mph)	    _velocity_unit='1/(3.6*0.62137119)';;
+    *)
+	    err 'unrecognised velocity "%s"' "$1"
+	    echo 0
+	    return 1
+	    ;;
+    esac
+    {
+    	echo "scale=$_velocity_precision";
+    	echo "$_velocity_unit * $_velocity_amount";
+    } | bc 
+}
+
+#
+# opt_distance() --Parse a distance specification.
+#
+opt_distance()
+{
+    OPTIND=1
+    _distance_precision=2
+    while getopts 'p:' opt; do
+	case $opt in
+	    p) _distance_precision="$OPTARG";;
+	esac
+    done
+    shift $(($OPTIND - 1))
+    _distance_unit=$(echo $1|sed -e 's/[0-9]* *//g')
+    _distance_amount=$(echo $1|sed -e 's/\([0-9]*\)/\1/g')
+    case $_distance_unit in
+    '')	    _distance_unit=1;;
+    mm)	    _distance_unit='1/1000';;
+    cm)	    _distance_unit='1/100';;
+    m)	    _distance_unit=1;;
+    km)	    _distance_unit=1000;;
+    mile|miles)   _distance_unit=1609.344;;
+    *)
+	    err 'unrecognised distance: "%s"' "$1"
+	    echo 0
+	    return 1
+	    ;;
+    esac
+    {
+    	echo "scale=$_distance_precision";
+    	echo "$_distance_unit * $_distance_amount";
+    } | bc 
+}

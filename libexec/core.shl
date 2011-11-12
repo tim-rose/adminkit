@@ -1,0 +1,338 @@
+#!/bin/sh
+#
+# CORE.SHL --Shell Library of core functions.
+#
+# Contents:
+# lib-loaded()   --Test if a library has already been loaded.
+# match()        --Test if a string matches a pattern.
+# str_split()    --Split a string into component pieces.
+# str_join()     --Join a list of strings with a delimiter..
+# rot13()        --translate text using Caesar's cipher, with an offset of 13.
+# choose()       --Interactively filter a set of values.
+# prompt()       --Prompt for a value, with a default.
+# vcs_keyword()  --Reformat a VCS Id string into something more presentable.
+# resolve_path() --Find a file in a path-specific way.
+# mk_dir()       --create a directory, and log about it too...
+# ln_file()      --Link a file, and log about it too...
+# abs()          --Output the absolute value of a number.
+# min()          --Output the smallest numeric value in a list.
+# max()          --Output the largest numeric value in a list.
+# num_octets()   --Convert a 32 bit number into a dotted list of 4 octets.
+# octets_num()   --Convert a dotted list of 4 octets into a 32-bit integer.
+#
+# Remarks:
+# This library contains miscellaneous routines that I don't have
+# another/better place for.
+#
+#
+
+#
+# lib-loaded() --Test if a library has already been loaded.
+#
+# Parameters:
+# $1	--the name of the variable used to indicate whether the lib was loaded
+# $2	--the current value of that variable.
+#
+# Returns:
+# Success: true; Failure: false
+# 
+# Remarks:
+# This function incurs the cost of an eval if the library isn't loaded, but
+# should be pretty fast if it is.
+#
+lib_loaded()
+{
+    if [ "$2" ]; then
+	return 0
+    else
+	eval "$1=1"		# set variable via an eval
+	return 1
+    fi
+}
+
+if lib_loaded _core_sh $_core_sh; then return; fi
+
+#
+# match() --Test if a string matches a pattern.
+#
+# Parameters:
+# $1	--the string to test
+# $2	--the target pattern
+#
+# Returns:
+# Success: true; Failure: false
+#
+match() 
+{ 
+    case "$1" in 
+    $2) return 0;; 
+    esac
+    return 1
+}
+
+#
+# str_split() --Split a string into component pieces.
+#
+# Parameters:
+# $1	--a string specifying the characters to split the text by
+# $2	--the string to split
+#
+# Output:
+# a list of "words" resulting from the split.
+#
+# Remarks:
+# Note that there is already a program called "split", for splitting FILES
+# into pieces.
+#
+str_split()
+(				# run in a sub-shell to localise IFS
+    IFS=$1
+    for word in $2; do
+	echo $word
+    done
+)
+
+#
+# str_join() --Join a list of strings with a delimiter..
+#
+# Parameters:
+# $1	--the delimiter
+# ...	--the strings to join
+#
+# Output:
+# The joined single string.
+#
+# Remarks:
+# Note that there is already a program called "join", for joining FILES.
+#
+str_join()
+{
+    local delimiter=$1; shift;
+    if [ $# -eq 0 ]; then
+	return
+    fi
+    printf '%s' "$1"; shift;
+    for arg in "$@"; do
+	printf '%s%s' "$delimiter" "$arg"
+    done
+    printf "\n"
+}
+
+#
+# rot13() --translate text using Caesar's cipher, with an offset of 13.
+#
+rot13()
+{
+    tr A-Za-z N-ZA-Mn-za-m
+}
+
+#
+# choose() --Interactively filter a set of values.
+#
+# Parameters:
+# $@	--this list of words to choose from
+#
+# Returns:
+# Success: true (and prints the chosen words); Failure: false.
+#
+# Remarks:
+# This is similar to the bash "select" command.
+#
+choose()
+{				# run in a sub-shell to localise var.s
+    local list=
+    local all=
+    local choice=
+    for file in "$@"; do
+	while true; do
+	    if [ "$all" ]; then
+		choice=y
+	    else
+		read -n1 -p "$file? [ynaq]: " choice
+		echo;			# get to a newline
+	    fi
+	    if match $choice [yYnNaAqQ]; then
+		break;
+	    else
+		echo "Please type y(=yes) n(=no) a(=all remaining) q(=quit, none selected)" >&2
+	    fi
+	done
+	case $choice in
+	[yY])	list="$list $file";;
+	[nN])	;;
+	[aA])	list="$list $file"; all=1;;
+	[qQ])	return 1;;	# failure
+	esac
+    done
+    if [ "$list" ]; then
+	echo $list
+    fi
+    return 0
+}
+
+#
+# prompt() --Prompt for a value, with a default.
+#
+# Parameters:
+# $1	--the prompt
+# $2	--the default value
+#
+# Returns:
+# Success: true, and echoes the new value; Failure: false
+#
+prompt()
+{
+    local read_opts=
+    if [ "$BASH" ]; then
+	read_opts=-e		# bash supports readline
+    fi
+    if [ "$2" ]; then
+	prompt_text="$1[$2]: "
+    else
+	prompt_text="$1: "
+    fi
+    if read $read_opts -p "$prompt_text" value; then
+	if [ "$value" ]; then
+	    echo $value
+	else
+	    echo $2			# default
+	fi
+	return 0
+    fi
+    return 1
+}
+
+#
+# vcs_keyword() --Reformat a VCS Id string into something more presentable.
+#
+# Parameter:
+# $1	--an VCS keyword string compatible with SVN's "Id" expansion
+#
+# Remarks:
+# The parameter should match something like:
+#     "$Id: core.shl 2643 2011-05-05 01:22:56Z tar $'
+# REVISIT: this is specific to RCS,CVS,SVN
+#
+vcs_keyword()
+{
+    if [ ! "$1" ]; then return; fi
+    echo "$1" |
+    if read vcs_keyword vcs_name vcs_id \
+	vcs_date vcs_time vcs_user vcs_end; then
+        printf '%s@%d (built: %s %s)\n' $vcs_name $vcs_id $vcs_date $vcs_time
+    fi
+}
+
+#
+# resolve_path() --Find a file in a path-specific way.
+#
+# Parameters:
+# path	--the path to search (optional, default: $PATH )
+# file	--the file 
+#
+resolve_path()
+(				# run in a sub-shell (b/c set IFS)
+    if [ $# -eq 2 ]; then
+	path=$1
+	shift
+    else
+	path=$PATH
+    fi
+    IFS=:
+    for dir in $path; do
+    	if [ -f $dir/$1 ]; then
+	    echo $dir/$1
+	    return 0
+	fi
+    done
+    return 1
+)
+
+#
+# mk_dir() --create a directory, and log about it too...
+#
+mk_dir() 
+{
+    for dir; do
+	if [ ! -d $dir ]; then
+	    info 'creating directory %s' $dir
+	    if ! install -d $dir; then
+		notice '%s: failed to create directory'
+	    fi
+	fi
+    done
+}
+
+#
+# ln_file() --Link a file, and log about it too...
+#
+ln_file() {
+
+    info "creating link: %s" "$*"
+    ln $*
+}
+
+#
+# abs() --Output the absolute value of a number.
+#
+abs()
+{
+    if [ "$1" -lt 0 ]; then
+	echo $((-1*$1))
+    else
+	echo $1
+    fi
+} 2>/dev/null 			# ignore squeals from test -lt
+
+#
+# min() --Output the smallest numeric value in a list.
+#
+min()
+{
+    _core_min=$1
+    for _core_val; do
+	if [ "$_core_val" -lt "$_core_min" ]; then
+	    _core_min=$_core_val
+	fi
+    done
+    echo $_core_min
+} 2>/dev/null 			# ignore squeals from test -lt
+
+#
+# max() --Output the largest numeric value in a list.
+#
+max()
+{
+    _core_max=$1
+    for _core_val; do
+	if [ "$_core_val" -gt "$_core_max" ]; then
+	    _core_max=$_core_val
+	fi
+    done
+    echo $_core_max
+} 2>/dev/null			# ignore squeals from test -gt
+
+#
+# num_octets() --Convert a 32 bit number into a dotted list of 4 octets.
+#
+num_octets()
+{
+    printf "%d.%d.%d.%d\n" \
+	$(( $1 >> 24 ))  \
+	$(( ( $1 & 0xffffff ) >> 16 )) \
+	$(( ( $1 & 0xffff ) >> 8 )) \
+	$(( ( $1 & 0xff ) ))
+} 2>/dev/null			# ignore squeals from arithmetic eval
+
+#
+# octets_num() --Convert a dotted list of 4 octets into a 32-bit integer.
+#
+octets_num()
+(
+    IFS=' '			# we're in a sub-shell: IFS is local
+
+    echo $1 | sed -e "s/[.]/ /g" |
+    while read o1 o2 o3 o4; do
+	echo $(( ( $o1 << 24 ) + ( $o2 << 16 ) + ( $o3 << 8 ) + $o4 )) 
+    done
+) 2>/dev/null			# ignore squeals from arithmetic eval

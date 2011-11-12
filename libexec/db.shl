@@ -1,0 +1,230 @@
+#!/bin/sh
+#
+# DB.SHL --Shell Library code for interacting with a database.
+#
+# Contents:
+# _db_cmd_env()     --Assemble the command for connecting to the database.
+# _db_convert_sql() --Convert from MySQL syntax to the current driver.
+# db_create()       --Create a database.
+# db_exec()         --Read and execute a SQL command from stdin.
+# db_select()       --Read and execute a SQL select command from stdin.
+# db_load()         --Load a CSV file into a database table.
+# db_export()       --Export a database table into a CSV file.
+#
+# Remarks:
+# This library attempts to smooth out the differences between mysql
+# and sqlite (and when I get around to it, oracle and postgres).  It
+# uses the same "schema.conf" file that the perl interfaces use, which
+# define the driver, schema and user credentials for connecting to the
+# database.  The schema is usually supplied as an argument when
+# sourcing this file, e.g.:
+#
+# . db.shl my-schema
+#
+# The schema name is used to identify a section in the config file that
+# contains the connection details.
+#
+#
+. core.shl
+if lib_loaded _db_sh $_db_sh; then return; fi
+. log.shl 
+. config.shl 
+
+#
+# _db_init --load default values from config and environment.
+#
+# Remarks:
+# This function is run when this library is "loaded".
+#
+_db_init()
+{
+    export DB_DRIVER; DB_DRIVER=${DB_DRIVER:-mysql}
+    export DB_SCHEMA; DB_SCHEMA=${1:-default}
+
+    load_config schema.conf $DB_SCHEMA db_
+    if [ "$db_driver" ];   then DB_DRIVER=$db_driver; fi
+    if [ "$db_schema" ];   then DB_SCHEMA=$db_schema; fi
+    if [ "$db_user" ];     then export DB_USER; DB_USER=$db_user; fi
+    if [ "$db_host" ];     then export DB_HOST; DB_HOST=$db_host; fi
+    if [ "$db_password" ]; then export DB_PASSWORD; DB_PASSWORD=$db_user; fi
+
+    debug 'db: %s@%s, %s' "$DB_USER" "$DB_HOST" "$DB_SCHEMA"
+    _db_cmd=$(_db_cmd_env)
+}
+
+#
+# _db_cmd_env() --Assemble the command for connecting to the database.
+#
+_db_cmd_env()
+{
+    case "$DB_DRIVER" in
+    mysql)
+	_db_cmd_="mysql -B"
+	if [ "$DB_HOST" ];	then _db_cmd_="$_db_cmd_ -h$DB_HOST"; fi
+	if [ "$DB_USER" ];	then _db_cmd_="$_db_cmd_ -u$DB_USER"; fi
+	if [ "$DB_PASSWORD" ];	then _db_cmd_="$_db_cmd_ -p$DB_PASSWORD"; fi
+	_db_cmd_="$_db_cmd_ -D$DB_SCHEMA"
+	;;
+    SQLite)
+	_db_cmd_="sqlite3 $DB_SCHEMA.db"
+	;;
+    *)
+	log_quit 'unknown driver %s' $DB_DRIVER
+	;;
+    esac
+    echo $_db_cmd_
+}
+
+#
+# _db_convert_sql() --Convert from MySQL syntax to the current driver.
+#
+# Remarks:
+# Currently, the preferred driver is MySQL, so that's the assumed
+# default format for the SQL.  Mapping do other databases' syntax
+# is done dynamically as required.
+#
+_db_convert_sql()
+{
+    case "$DB_DRIVER" in
+    mysql) cat ;;		# NOP!
+    SQLite)
+	sed \
+	    -e 's/auto_increment/autoincrement/'  \
+	    -e 's/unsigned//' \
+	    -e 's/^.*index.*/-- &/' \
+	    -e 's/).*; *$/);/' \
+	    -e 's/with.*;/;/'
+	;;
+    *)
+	log_quit 'unknown driver %s' $DB_DRIVER
+	;;
+    esac
+}
+
+#
+# db_create() --Create a database.
+#
+# Parameter:
+# _db_schema	--The name of the datbase to create (optional)
+#
+# Remarks:
+# This function deals directly with the command-line quirks of MySQL
+# and SQLite.
+# For MySQL:
+#  * you cannot connect to a database that doesn't exist
+#  * there is an explicit 'create database' statement.
+# For SQLite:
+#  * SQLite will create a database on demand (i.e. when you create a table)
+#  * there is no explicit 'create database' statement.
+#
+db_create()
+{
+    _db_create_cmd=$(echo $_db_cmd | sed -e 's/[^ ]*$//') # remove schema part
+    _db_schema=${1:-$DB_SCHEMA}
+
+    case "$DB_DRIVER" in
+    mysql)
+	echo "create database $_db_schema;" | $_db_create_cmd
+	;;
+    SQLite)
+	echo 'create table __tmp (val int); drop table __tmp;' |
+	    $_db_create_cmd $_db_schema.db
+	;;
+    *)
+	log_quit 'unknown driver %s' $DB_DRIVER
+	;;
+    esac
+}
+
+#
+# db_exec() --Read and execute a SQL command from stdin.
+#
+# Returns:
+# Success: true; Failure: false.
+#
+# Remarks:
+# The database "command" is contrived to produce a "header" line for
+# query results; in usual practice, that's filtered out (by running
+# db_select()), but occasionally it's useful, e.g.  when saving to CSV
+# file.  In any case, for non-select statements it's better to use
+# this, more raw interface, because the return status of the function
+# is the query result.
+#
+db_exec()
+{
+    debug 'db_exec: cmd="%s"' "$_db_cmd"
+    {
+	if [ "$DB_DRIVER" = "SQLite" ]; then
+	    printf ".header on\n.separator \"\\t\"\n.nullvalue NULL\n";
+	fi
+	if [ $# -ne 0 ]; then
+	    echo "$*" 		# commands as arguments
+	else
+	    cat			# commands from stdin
+	fi
+    } | $_db_cmd
+}
+
+#
+# db_select() --Read and execute a SQL select command from stdin.
+#
+# Remarks:
+# This routine just filters out the header line produced by the
+# database engine.  Because the filter is applied via a pipe, the
+# success/failure of the db command is lost.  For (well-formed!)
+# select queries that's not important, but for updates/deletes etc.
+# use db_exec().
+#
+db_select()
+{
+    db_exec $* | sed -e1d	# filter out the query header line
+}
+
+#
+# db_load() --Load a CSV file into a database table.
+#
+# Parameters:
+# $table	--the table to load into
+# $file		--the file to load from
+#
+db_load()
+{
+    _db_tmp_file=${TMPDIR:-/tmp}/db_load-$$.tmp
+
+    case "$DB_DRIVER" in
+    mysql)
+    	cp $2 $_db_tmp_file
+	_db_load_fmt="load data infile '%s' into table %s fields terminated by ',' ignore 1 lines\n"
+	;;
+    SQLite)
+	sed -e 1d <$2 >$_db_tmp_file
+	_db_load_fmt=".separator ,\n.import %s %s\n"
+	;;
+    *)
+	log_quit 'unknown driver %s' $DB_DRIVER
+	;;
+    esac
+
+    debug 'fmt="%s"' "$_db_load_fmt"
+    printf "$_db_load_fmt" $_db_tmp_file $1 | db_exec
+    rm $_db_tmp_file
+}
+
+#
+# db_export() --Export a database table into a CSV file.
+#
+# Parameters:
+# $table	--the table to export from
+# $file		--the file to write CSV data to
+#
+db_export()
+{
+    _db_export_fields='*'
+    _db_export_fmt="select $_db_export_fields from %s;\n"
+    printf "$_db_export_fmt" $1 | db_exec | tr '	' ',' > $2
+}
+
+#
+# BEGIN	--Run initialisation code!
+#
+_db_init "$@"

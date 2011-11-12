@@ -1,0 +1,116 @@
+#!/bin/sh
+#
+# DEBIAN.SHL --Shell Library of functions for debian maintainer scripts.
+#
+# Contents:
+# deb_divert()   --divert a debian config file, and link it to a surrogate.
+# deb_undivert() --restore a previous file diversion.
+# add_host()     --Add a host name to the /etc/hosts file.
+# del_host()     --Remove a host name from the /etc/hosts file.
+# add_user()     --Add some system user.
+#
+. core.shl
+if lib_loaded _debian_sh $_debian_sh; then return; fi
+. log.shl
+
+#
+# deb_divert() --divert a debian config file, and link it to a surrogate.
+#
+# Parameters:
+# $1	--the file to divert
+#
+deb_divert()
+{
+    local divert_file="/var/lib/divert/$1"
+
+    if [ ! -f "$1" ]; then
+	notice "divert %s: target file doesn't exist" "$1"
+	return 1
+    fi
+    if [ ! -f "$divert_file" ]; then
+	notice "divert %s: alternate file doesn't exist" "$divert_file"
+	return 1
+    fi
+    info "dpkg-divert --add --rename --divert \"%s\" \"%s\"" \
+	"${divert_file}.dist" "$1"
+    if dpkg-divert --add --rename --divert "${divert_file}.dist" "$1"; then
+	ln -sf "$divert_file" "$1" # create link to the diversion
+    fi
+}
+
+#
+# deb_undivert() --restore a previous file diversion.
+#
+# Parameters:
+# $1	--the file to be restored
+#
+deb_undivert()
+{
+    if [ -L "$1" ]; then
+	rm "$1"				# remove link to diversion
+    fi
+    dpkg-divert --rename --remove "$1"
+}
+
+#
+# add_host() --Add a host name to the /etc/hosts file.
+#
+# Parameters:
+# $1	--the IP address
+# $2...	--the name(s) of the host.
+#
+add_host()
+{
+    if ! grep "^$1" /etc/hosts >/dev/null 2>&1; then
+	notice '/etc/hosts: adding %s(%s)'  $2 $1
+	ip=$1; shift
+	printf "%s\t%s\n" "$ip" "$*" >> /etc/hosts
+    fi
+}
+
+#
+# del_host() --Remove a host name from the /etc/hosts file.
+#
+# Parameter:
+# $1	--the host or IP address
+#
+# Remarks:
+# The regex in this function is a little too broad; (e.g.) if you have
+# a bunch of backup hosts ("backup1", "backup2", ...) and specify
+# "del_host backup", they will ALL be deleted.  Bug or feature? you
+# decide :-).  In any case, doing better is a little tricky, because
+# of sed's simple regexes, and dealing with
+# whitespace/tab/start-line/end-line issues.
+#
+del_host()
+{
+    hosts_bak=${TMPDIR:-/tmp}/hosts-$$;
+    debug 'hosts backup: %s' $hosts_bak
+    cp /etc/hosts $hosts_bak
+    sed -e "/$1/d" <$hosts_bak >$hosts_bak.new
+    if ! diff $hosts_bak $hosts_bak.new >/dev/null; then
+	notice '%s: removing host from /etc/hosts' $1
+	mv $hosts_bak.new /etc/hosts
+	mv $hosts_bak /etc/hosts.bak
+    fi
+    rm -f $hosts_bak $hosts_bak.new
+}
+
+#
+# add_user() --Add some system user.
+#
+# Remarks:
+# This function adds a standard system user, giving them the
+# ability to sudo, and setting up their (empty) .ssh directory.
+# Some or all of this can be done by tinkering with adduser.local
+# and/or /etc/skel.
+# 
+add_user()
+{
+    info 'add_user: %s' $1
+    adduser --gecos="Envato $1 user" --disabled-password $1
+    usermod -a -G sudo $1
+
+    local home=$(grep ^$1 /etc/passwd|cut -d: -f6)
+    mkdir $home/.ssh && chown -R "$1:$1" $home/.ssh
+}
