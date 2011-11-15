@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# db-dump --Export a database to a bunch of CSV files.
+# db-export --Export some databases to (possibly compressed) SQL.
 #
 # Contents:
 # usage() --echo this script's usage message.
@@ -20,7 +20,7 @@ usage()
 }
 
 ignore_opts='i.ignore=mysql,*_schema,.*test.*'
-db_opts="d.database=;h.host=;u.user=$USER;p.password="
+db_opts="h.host=;u.user=$USER;p.password="
 opts="$db_opts;$ignore_opts;r.root=.;s.suffix=.sql;z.compress;$LOG_GETOPTS"
 
 eval $(getopt_long_args -d "$opts" "$@" || usage "$opts" >&2)
@@ -43,7 +43,7 @@ if [ $# -eq 0 ]; then
     else
 	ignore=$(echo "$ignore" | sed -e 's/,/|/g')
     fi
-    debug "ignore: '%s'" "$ignore"
+    debug "db-export: ignore pattern: '%s'" "$ignore"
     databases=$(
         echo 
 	mysql $mysql_args -e 'show databases' | 
@@ -61,7 +61,10 @@ for db in $databases ; do
     info 'dumping %s to %s' $db $file
     mkdir -p $(dirname $file)
     debug "mysqldump $mysql_args \"$db\" > $file"
-    mysqldump $mysql_args "$db" > $file
+    if ! mysqldump $mysql_args "$db" > $file; then
+	fatal 'db-export: failed to connect to database server'
+	exit 1;
+    fi
     if [ "$compress" ]; then
 	info 'compressing %s' $file
 	gzip $file
