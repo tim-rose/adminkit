@@ -61,16 +61,16 @@ for db in $databases ; do
     info 'dumping %s to %s' $db $file
     mkdir -p $(dirname $file)
     debug "mysqldump $mysql_args \"$db\" > $file"
-    date "+-- db-export: dump started at %Y-%m-%d %H:%M:%S %Z" >$file
+    date "+-- db-export: started at %Y-%m-%d %H:%M:%S %Z" >$file
     if [ "$message" ]; then
-	echo "$message" | sed -e 's/^/-- /' >> $file
+	echo "$message" | sed -e 's/^/-- db-export: /' >> $file
     fi
     if ! mysqldump $mysql_args "$db" >> $file; then
 	fatal 'db-export: failed to connect to database server'
 	rm -f $file
 	exit 1;
     fi
-    date "+-- db-export: dump completed at %Y-%m-%d %H:%M:%S %Z" >>$file
+    date "+-- db-export: completed at %Y-%m-%d %H:%M:%S %Z" >>$file
     if [ "$compress" ]; then
 	info 'compressing %s' $file
 	gzip $file

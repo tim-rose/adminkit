@@ -11,6 +11,7 @@ db-export \- export some mysql databases to SQL files.
 .OP -p password
 .OP -r root
 .OP -s suffix
+.OP -m message
 .OP -z
 .OP -q
 .OP -v
@@ -23,6 +24,7 @@ db-export \- export some mysql databases to SQL files.
 .OP -p password
 .OP -r root
 .OP -s suffix
+.OP -m message
 .OP -z
 .OP -q
 .OP -v
@@ -47,6 +49,13 @@ If the
 option is specified, the resulting files will be compress, and will
 have an additional ".gz" extension (i.e. 
 .RI ./ schema .sql.gz)
+
+.B db-export
+will also write SQL comments into the dump file recording the start
+and end time of the dump operation.  An additional comment can be
+included via the 
+.B \-\-message 
+option.
 .SH OPTIONS
 .TP
 .BI \-h\  host
@@ -86,6 +95,11 @@ Specifies the root directory of SQL dump file (default ".").
 .BI \-\-suffix\fR= suffix
 Specifies the suffix (after the schema name) for the SQL dump file 
 (default ".sql").
+.TP 
+.BI \-m\  message-text
+.TQ
+.BI \-\-message\fR= message-text
+Add a SQL comment text message at the start of the dump.
 .TP 
 .B \-z
 .TQ
