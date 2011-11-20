@@ -16,12 +16,15 @@ PATH=$PATH:/usr/libexec:/usr/local/libexec
 usage()
 {
     #vcs_keyword 'db-dump.sh (unknown version)'
+    cat <<EOF
+db-export: dump MySQL schemas into local files.
+EOF
     getopt_usage "db-export [options] [databases...]" "$1"
 }
 
-ignore_opts='i.ignore=mysql,*_schema,.*test.*'
+ignore_opts='i.ignore=mysql,.*_schema,.*test.*'
 db_opts="h.host=;u.user=$USER;p.password="
-opts="$db_opts;$ignore_opts;r.root=.;s.suffix=.sql;m.message=;z.compress;$LOG_GETOPTS"
+opts="$db_opts;$ignore_opts;r.root=.;s.suffix=.sql;m.message=;f.force;z.compress;$LOG_GETOPTS"
 
 eval $(getopt_long_args -d "$opts" "$@" || usage "$opts" >&2)
 log_getopts
@@ -33,6 +36,9 @@ mysql_args=
 if [ "$user" ];     then mysql_args="$mysql_args -u$user"; fi
 if [ "$password" ]; then mysql_args="$mysql_args -p$password"; fi
 if [ "$host" ];     then mysql_args="$mysql_args -h$host"; fi
+
+gzip_args=
+if [ "$force" ];     then gzip_args="--force"; fi
 
 #
 # guess databases if not provided
@@ -52,6 +58,7 @@ if [ $# -eq 0 ]; then
 else
     databases=$*
 fi
+debug 'preparing to dump databases: %s' "$databases"
 
 #
 # export each database...
@@ -73,6 +80,6 @@ for db in $databases ; do
     date "+-- db-export: completed at %Y-%m-%d %H:%M:%S %Z" >>$file
     if [ "$compress" ]; then
 	info 'compressing %s' $file
-	gzip $file
+	gzip $gzip_args $file
     fi
 done

@@ -13,6 +13,7 @@ db-export \- export some mysql databases to SQL files.
 .OP -s suffix
 .OP -m message
 .OP -z
+.OP -f
 .OP -q
 .OP -v
 .I databases ...
@@ -26,6 +27,7 @@ db-export \- export some mysql databases to SQL files.
 .OP -s suffix
 .OP -m message
 .OP -z
+.OP -f
 .OP -q
 .OP -v
 .YS
@@ -34,7 +36,10 @@ The
 .B db-export
 command connects to a mysql server and exports the specified schemas
 to SQL files named after the schema.  This is just a convenience wrapper
-around mysqldump.
+around 
+.B mysqldump
+and
+.BR gzip .
 
 The schemas are dumped into files named 
 .IR root / schema "" suffix ; 
@@ -46,8 +51,9 @@ Both the root and the suffix can be specified by command line options
 
 If the 
 .B \-\-compress
-option is specified, the resulting files will be compress, and will
-have an additional ".gz" extension (i.e. 
+option is specified, the resulting files will be compressed using
+.BR gzip , 
+and will have an additional ".gz" extension (i.e. 
 .RI ./ schema .sql.gz)
 
 .B db-export
@@ -106,6 +112,17 @@ Add a SQL comment text message at the start of the dump.
 .B \-\-compress
 Compress the resulting SQL dump file using 
 .BR gzip (1).
+.TP 
+.B \-f
+.TQ
+.B \-\-force
+Pass the 
+.B \-\-force
+option to
+.BR gzip (1).
+Normally 
+.B gzip
+will avoid overwriting an existing file, this options forces it do so.
 .SH "EXIT STATUS"
 .B db-export
 returns 2 if there was an error in the command line
