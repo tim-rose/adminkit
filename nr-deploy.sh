@@ -33,7 +33,7 @@ usage()
     cat <<EOF
 nr-deploy: send a newrelic deployment notification to newrelic
 EOF
-    getopt_usage "db-export [options] [databases...]" "$1"
+    getopt_usage "nr-deploy [options] [databases...]" "$1"
 }
 
 USER=${USER:-$LOGNAME}
