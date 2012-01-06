@@ -13,7 +13,7 @@ PATH=$PATH:/usr/libexec:/usr/local/libexec
 . getopt.shl
 . log.shl
 newrelic_url='https://rpm.newrelic.com/deployments.xml'
-tmpfile=${TMPDIR:-/tmp}/$0-$$
+tmpfile=${TMPDIR:-/tmp}/$(basename $0)-$$
 
 trap "rm -f $tmpfile" 0
 
