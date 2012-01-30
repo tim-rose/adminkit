@@ -10,7 +10,7 @@ usage="procwatch [-d delay] [-f format] command"
 delay=60
 format=ps
 values='ppid,pid,time,etime,pcpu,pmem,vsz,rss'
-date_format='%Y-%m-%d %H:%M:%S '
+date_format='%Y-%m-%dT%H:%M:%S '
 formatter='formatter'
 
 #
@@ -67,10 +67,13 @@ else
 fi
 
 #
-# main...
+# main: sample process values via ps
 #
 while true; do
-    ps -o "$values,comm" |
-        sed -e '1d' | grep "$1" | sed -e "s/ *-*$1\$//" | $formatter
+    ps ax -o "$values,comm" |
+        sed -e '1d' |			# remove header
+	grep "$1" |			# filter on command
+	sed -e "s/ *-*[^ ]*$1\$//" 	# remove command tag
     sleep $delay
-done
+done | $formatter			# format for display (csv or ps)
+
