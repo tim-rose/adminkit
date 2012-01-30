@@ -3,6 +3,6 @@ Section: misc
 Priority: extra
 Maintainer: Tim Rose <tim.rose@acm.org>
 Architecture: i386
-Version: 0.0.0
+Version: 0.0.1
 Depends: bc
 Description: Various utitilities for administrator use.

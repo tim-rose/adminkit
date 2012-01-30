@@ -4,7 +4,7 @@
 #
 PACKAGE	= adminkit
 VERSION	= 0.0
-RELEASE	= 0
+RELEASE	= 1
 ARCH	= all
 LANG	= sh nroff
 
