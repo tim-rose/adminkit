@@ -34,7 +34,7 @@ daemonize()
 	cd /;				# cd away from unmountable systems
 	$cmd "$@" <&- 1<&- 2<&-	&	# run with stdio closed
     )
-e    exit 0				# parent exits
+    exit 0				# parent exits
 }
 
 #
