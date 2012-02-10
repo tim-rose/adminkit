@@ -13,6 +13,7 @@
 # emerg()             --Log an emergency message.
 # log_getopts()       --Set the logging options based on variables set by LOG_GETOPTS.
 # log_cmd()           --Log a command and then run it.
+# log_var()           --Log the value of some variables
 #
 # Remarks:
 # This library provides some customisation over logging facilities that
@@ -253,5 +254,15 @@ log_getopts()
 #
 log_cmd()
 {
-    debug "exec: $@"; "$@"
+    debug "exec: $*"; "$@"
+}
+
+#
+# log_var() --Log the value of some variables
+#
+log_var()
+{
+    for var; do
+	debug '%s: \"%s\"' $var $(eval "echo \$$var")
+    done
 }
