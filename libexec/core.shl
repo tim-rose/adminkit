@@ -3,22 +3,23 @@
 # CORE.SHL --Shell Library of core functions.
 #
 # Contents:
-# lib-loaded()   --Test if a library has already been loaded.
-# match()        --Test if a string matches a pattern.
-# str_split()    --Split a string into component pieces.
-# str_join()     --Join a list of strings with a delimiter..
-# rot13()        --translate text using Caesar's cipher, with an offset of 13.
-# choose()       --Interactively filter a set of values.
-# prompt()       --Prompt for a value, with a default.
-# vcs_keyword()  --Reformat a VCS Id string into something more presentable.
-# resolve_path() --Find a file in a path-specific way.
-# mk_dir()       --create a directory, and log about it too...
-# ln_file()      --Link a file, and log about it too...
-# abs()          --Output the absolute value of a number.
-# min()          --Output the smallest numeric value in a list.
-# max()          --Output the largest numeric value in a list.
-# num_octets()   --Convert a 32 bit number into a dotted list of 4 octets.
-# octets_num()   --Convert a dotted list of 4 octets into a 32-bit integer.
+# lib-loaded()    --Test if a library has already been loaded.
+# argv_or_stdin() --output arguments (if specified) or lines from stdin.
+# match()         --Test if a string matches a pattern.
+# str_split()     --Split a string into component pieces.
+# str_join()      --Join a list of strings with a delimiter..
+# rot13()         --translate text using Caesar's cipher, with an offset of 13.
+# choose()        --Interactively filter a set of values.
+# prompt()        --Prompt for a value, with a default.
+# vcs_keyword()   --Reformat a VCS Id string into something more presentable.
+# resolve_path()  --Find a file in a path-specific way.
+# mk_dir()        --create a directory, and log about it too...
+# ln_file()       --Link a file, and log about it too...
+# abs()           --Output the absolute value of a number.
+# min()           --Output the smallest numeric value in a list.
+# max()           --Output the largest numeric value in a list.
+# num_octets()    --Convert a 32 bit number into a dotted list of 4 octets.
+# octets_num()    --Convert a dotted list of 4 octets into a 32-bit integer.
 #
 # Remarks:
 # This library contains miscellaneous routines that I don't have
@@ -51,6 +52,18 @@ lib_loaded()
 }
 
 if lib_loaded _core_sh $_core_sh; then return; fi
+
+#
+# argv_or_stdin() --output arguments (if specified) or lines from stdin.
+#
+argv_or_stdin()
+{
+    if [ $# -gt 0 ]; then
+	for arg; do echo "$arg"; done 
+    else
+	while read arg; do echo "$arg"; done
+    fi
+}
 
 #
 # match() --Test if a string matches a pattern.
