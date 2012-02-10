@@ -12,6 +12,7 @@
 # log_quit()          --Log a message and quit.
 # emerg()             --Log an emergency message.
 # log_getopts()       --Set the logging options based on variables set by LOG_GETOPTS.
+# log_cmd()           --Log a command and then run it.
 #
 # Remarks:
 # This library provides some customisation over logging facilities that
@@ -20,7 +21,6 @@
 # 
 # If an argument is supplied when sourcing this library, it will be
 # used/saved as LOG_IDENT.
-#
 #
 . core.shl 
 if lib_loaded _log_sh $_log_sh; then return; fi
@@ -246,4 +246,12 @@ log_getopts()
     elif [ "$verbose" ]; then LOG_LEVEL=info;
     elif [ "$debug" ];   then LOG_LEVEL=debug;
     fi
+}
+
+#
+# log_cmd() --Log a command and then run it.
+#
+log_cmd()
+{
+    debug "exec: $@"; "$@"
 }
