@@ -19,9 +19,6 @@
 # This library provides some customisation over logging facilities that
 # allows a program to log to either stderr or syslog, with some filtering
 # based on the "log level".
-# 
-# If an argument is supplied when sourcing this library, it will be
-# used/saved as LOG_IDENT.
 #
 . core.shl 
 if lib_loaded _log_sh $_log_sh; then return; fi
@@ -36,7 +33,7 @@ export LOG_LEVEL; LOG_LEVEL=${LOG_LEVEL:-notice}
 export LOG_FACILITY; LOG_FACILITY=${LOG_FACILITY:-user}
 USER=${USER:-$LOGNAME}
 USER=${USER:-nobody}
-export LOG_IDENT; LOG_IDENT=${LOG_IDENT:-${0:-$USER}}
+export LOG_IDENT; LOG_IDENT=$USER
 #export LOG_COLORS;
 #export LOG_TIMESTAMP; LOG_TIMESTAMP='%b %d %H:%M:%S'
 LOG_GETOPTS="q.quiet;v.verbose;_.debug" # Note: not exported!
