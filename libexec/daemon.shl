@@ -30,10 +30,8 @@ daemonize()
     cmd=$1; shift
     export LOG_OUTPUT=syslog
     info 'daemonize(%s)' $cmd
-    (
-	cd /;				# cd away from unmountable systems
-	$cmd "$@" <&- 1<&- 2<&-	&	# run with stdio closed
-    )
+    cd /;				# cd away from unmountable systems
+    $cmd "$@" <&- 1<&- 2<&-	&	# run with stdio closed
     exit 0				# parent exits
 }
 
@@ -89,7 +87,8 @@ end_singleton() { :; }
 # begin_singleton() --Begin running as a singleton process.
 #
 # Parameter:
-# $1	--the singleton lock-file (optional)
+# $1	--the process ID
+# $2	--the singleton lock-file (optional)
 #
 # Remarks:
 # The singleton lock file contains the PID of the caller, because
@@ -101,8 +100,9 @@ end_singleton() { :; }
 #
 begin_singleton()
 {
-    if [ "$1" ]; then
-	_daemon_lock_file="$1"
+    local pid=$1;
+    if [ "$2" ]; then
+	_daemon_lock_file="$2"
     else
 	_daemon_lock_file=${TMPDIR:-/tmp}/$_daemon_lock_id.lock
     fi
@@ -122,7 +122,7 @@ begin_singleton()
 	exit 0
     fi
     chmod u+w $_daemon_lock_file # write pid to lockfile
-    echo $$ >$_daemon_lock_file
+    echo $pid >$_daemon_lock_file
     chmod 444 $_daemon_lock_file
     #
     # end_singleton() --Remove the lock file created by begin_singleton.
@@ -136,5 +136,5 @@ begin_singleton()
 	rm -f -- $_daemon_lock_file
 
     }
-    trap "rm -f -- $_daemon_lock_file" INT QUIT TERM EXIT
+    trap "rm -f -- $_daemon_lock_file" 0 # delete on exit
 }
