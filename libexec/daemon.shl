@@ -4,6 +4,7 @@
 #
 # Contents:
 # daemonize()       --Become a daemon process.
+# daemon_pid()      --Get the process ID reliably.
 # snooze()          --sleep for the specified time, or until interrupted.
 # remove_lock()     --Remove the singleton lock file.
 # end_singleton()   --Remove the lock file created by begin_singleton.
@@ -46,6 +47,30 @@ daemonize()
 proc_children()
 {
     ps -oppid,pid | grep "^ *$1" | sed -e 's/^[0-9]* //'
+}
+
+#
+# daemon_pid() --Get the process ID reliably.
+#
+# Remarks:
+# When running in the foreground, "$$" returns the current PID.  When
+# running as a daemon, we've exec'd from that process, but the rules
+# of shell require that $$ is still set to the (no-longer-running)
+# parent.  We exploit that by checking to see of the current process
+# doesn't exist, and then we grep for the orphaned (ppid==1) process
+# that must be our true self.
+# 
+# Yes, this is an ugly, ugly hack.
+#
+daemon_pid()
+{
+    if kill -s 0 $$ 2>/dev/null; then
+	echo $$
+    else
+	ps -oppid,pid,command |
+	    sed -ne 's/  */ /g' -e 's/^ //' -e '/^1 /p' |
+	    cut -d' ' -f2
+    fi
 }
 
 #
@@ -100,9 +125,9 @@ end_singleton() { :; }
 #
 begin_singleton()
 {
-    local pid=$1;
-    if [ "$2" ]; then
-	_daemon_lock_file="$2"
+    local pid=$(daemon_pid)
+    if [ "$1" ]; then
+	_daemon_lock_file="$1"
     else
 	_daemon_lock_file=${TMPDIR:-/tmp}/$_daemon_lock_id.lock
     fi
