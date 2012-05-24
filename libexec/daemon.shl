@@ -6,8 +6,9 @@
 # daemonize()       --Become a daemon process.
 # snooze()          --sleep for the specified time, or until interrupted.
 # remove_lock()     --Remove the singleton lock file.
-# end_singleton()   --Remove the lock file created by begin_singleton.
 # begin_singleton() --Begin running as a singleton process.
+# end_singleton()   --Remove the lock file created by begin_singleton.
+# create_lock()     --Portable version of lock creation.
 #
 # Remarks:
 # This library contains routines useful for daemon/background processes.
@@ -77,15 +78,6 @@ remove_lock()
 }
 
 #
-# end_singleton() --Remove the lock file created by begin_singleton.
-#
-# Remarks:
-# This is actually a dummy/NOP function; the real thing gets defined
-# by begin_singleton, once the lock file name is known.
-#
-end_singleton() { :; }
-
-#
 # begin_singleton() --Begin running as a singleton process.
 #
 # Parameter:
@@ -119,23 +111,41 @@ begin_singleton()
 	fi
     fi
     
-    if ! lockfile -r0 $_daemon_lock_file >/dev/null 2>&1; then
+    if ! create_lock $_daemon_lock_file >/dev/null 2>&1; then
 	err '%s: process is already running' $_daemon_lock_file
 	exit 0
     fi
     chmod u+w $_daemon_lock_file # write pid to lockfile
     echo $pid >$_daemon_lock_file
     chmod 444 $_daemon_lock_file
-    #
-    # end_singleton() --Remove the lock file created by begin_singleton.
-    #
-    # Remarks:
-    # Note: this function is defined within/by begin_singleton() (!!!)
-    #
-    end_singleton()
-    {
-	info 'end_singleton: %s' $_daemon_lock_file
-	rm -f -- $_daemon_lock_file
+}
 
-    }
+#
+# end_singleton() --Remove the lock file created by begin_singleton.
+#
+end_singleton()
+{
+    info 'end_singleton: %s' ${1:-$_daemon_lock_file}
+    rm -f -- ${1:-$_daemon_lock_file}
+}
+
+#
+# create_lock() --Portable version of lock creation.
+#
+# Remarks:
+# BSD/Darwin use "lockfile", but debian favours "lockfile-create".
+#
+create_lock()
+{
+    if [ -f /usr/bin/lockfile ]; then
+	/usr/bin/lockfile -r0 "$1" >/dev/null 2>&1
+    elif [ -f /usr/bin/lockfile ]; then
+	lockfile-create --retry=0 --lock-name "$1"
+    else
+	if [ ! -f "$1" ]; then
+	    touch "$1"			# erk!
+	else
+	    false
+	fi
+    fi
 }
