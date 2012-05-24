@@ -67,7 +67,7 @@ agent()
 	    case "$signal" in
 		INT|QUIT|TERM)
 		    notice 'signal %s: time to die' $signal
-		    end_singleton
+		    end_singleton "$pid_file"
 		    exit 1;;
 		HUP)			# SIGHUP
 		    info 'SIGHUP'
@@ -92,7 +92,7 @@ agent()
 	run_parts "$1"
     done
     warning 'main loop exit'
-    end_singleton
+    end_singleton "$pid_file"
 }
 
 opts="d.daemon;p.pid_file=;n.name=;w.wait=1d;$LOG_GETOPTS"
