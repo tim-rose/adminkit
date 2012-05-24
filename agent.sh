@@ -60,9 +60,6 @@ setup_signals()
 agent()
 {
     info 'starting: %s' "$1"
-    if [ "$pid_file" ]; then
-	begin_singleton "$pid_file"
-    fi
     setup_signals
     while true; do
 	signal=
@@ -120,7 +117,14 @@ if [ "$name" ]; then
 fi
 
 if [ "$daemon" ]; then
-    daemonize agent "$1"
+    pid=$(daemonize agent "$1")
+    if [ "$pid_file" ]; then
+	begin_singleton $pid "$pid_file"
+    fi
+    exit
 else
+    if [ "$pid_file" ]; then
+	begin_singleton $$ "$pid_file"
+    fi
     agent "$1"
 fi
