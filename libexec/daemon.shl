@@ -39,19 +39,6 @@ daemonize()
 }
 
 #
-# proc_children() return a list of children processes.
-#
-# Remarks:
-# This will return some spurious pids, being the command(s)
-# involved in the calculation (i.e. ps)
-# REVISIT: use $!, dummy!
-#
-proc_children()
-{
-    ps -oppid,pid | grep "^ *$1" | sed -e 's/^[0-9]* //'
-}
-
-#
 # snooze() --sleep for the specified time, or until interrupted.
 #
 # Parameter:
@@ -63,7 +50,7 @@ snooze()
 {
     sleep $1 &
     if ! wait; then
-	kill $(proc_children $$) >/dev/null 2>/dev/null
+	kill $! >/dev/null 2>/dev/null
 	return 1		# false
     fi
     return 0			# true
