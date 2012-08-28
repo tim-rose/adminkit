@@ -6,7 +6,7 @@ PACKAGE	= adminkit
 VERSION	= 0.0
 RELEASE	= 1
 ARCH	= all
-LANG	= sh nroff
+SRC_LANG	= sh nroff
 
 MAN1_SRC = db-export.1 mkchroot.1
 SH_SRC = agent.sh db-export.sh ftp-delete.sh ftp-upload.sh \

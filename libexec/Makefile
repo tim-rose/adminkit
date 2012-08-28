@@ -2,7 +2,7 @@
 # Makefile --Build rules for adminkit's libexec directory.
 #
 #
-LANG	= sh
+SRC_LANG	= sh
 
 SH_SRC = lesspipe.sh
 SHL_SRC = cgi.shl config.shl core.shl daemon.shl db.shl debian.shl \
