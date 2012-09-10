@@ -29,7 +29,6 @@ fi
 #
 usage()
 {
-    #vcs_keyword 'db-dump.sh (unknown version)'
     cat <<EOF
 nr-deploy: send a newrelic deployment notification to newrelic
 EOF
