@@ -6,10 +6,14 @@
 # This command runs a ps command within a delay loop, and (re-prints)
 # the system stats for the specified process.
 #
+PATH=$PATH:/usr/libexec:/usr/local/libexec
+. log.shl
+#. getopt.shl
+
 usage="procwatch [-d delay] [-f format] command"
 delay=60
 format=ps
-values='ppid,pid,time,etime,pcpu,pmem,vsz,rss'
+values='pid,ppid,pid,user,pri,start,time,etime,pcpu,pmem,vsz,rss,command'
 date_format='%Y-%m-%dT%H:%M:%S '
 formatter='formatter'
 
@@ -55,7 +59,7 @@ fi
 # output header line, check format type
 #
 if [ "$format" = 'ps' ]; then
-    ps -o $values | sed -e '2,$d' -e 's/^/TIMESTAMP           /'
+    ps -eo $values | sed -e '2,$d' -e 's/^/TIMESTAMP           /'
 elif [ "$format" = 'csv' ]; then
     date_format="%s,%Y-%m-%d,%H:%M:%S,%z"
     formatter='csv_formatter'
