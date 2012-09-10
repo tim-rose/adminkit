@@ -9,9 +9,9 @@ ARCH	= all
 SRC_LANG	= sh nroff
 
 MAN1_SRC = db-export.1 mkchroot.1
-SH_SRC = agent.sh db-export.sh ftp-delete.sh ftp-upload.sh \
-    gen-password.sh mkchroot.sh nr-deploy.sh procwatch.sh \
-    sslogin.sh
+SH_SRC = agent.sh bloatfish.sh db-export.sh ftp-delete.sh \
+    ftp-upload.sh gen-password.sh mkchroot.sh nr-deploy.sh \
+    php-sessiondirs.sh procwatch.sh pstiche.sh sslogin.sh
 
 include devkit.mk package.mk
 
