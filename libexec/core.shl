@@ -17,7 +17,6 @@
 # is_user()       --Test if the current process is ownded by a specified user.
 # is_group()      --Test if the current process is a member of a specified group.
 # mk_dir()        --create a directory, and log about it too...
-# ln_file()       --Link a file, and log about it too...
 # abs()           --Output the absolute value of a number.
 # min()           --Output the smallest numeric value in a list.
 # max()           --Output the largest numeric value in a list.
@@ -316,15 +315,6 @@ mk_dir()
 	    fi
 	fi
     done
-}
-
-#
-# ln_file() --Link a file, and log about it too...
-#
-ln_file() {
-
-    info "creating link: %s" "$*"
-    ln $*
 }
 
 #
