@@ -4,6 +4,7 @@
 #
 # Contents:
 # opt_duration() --Parse a simple duration specification.
+# fmt_duration() --Format a time duration specified as seconds.
 # opt_velocity() --Parse a velocity specification.
 # opt_distance() --Parse a distance specification.
 #
@@ -14,8 +15,7 @@
 #
 #
 . core.shl
-if lib_loaded _unit_sh $_unit_sh; then return; fi
-
+lib_loaded _unit_sh $_unit_sh && return
 . log.shl
 
 #
@@ -52,6 +52,35 @@ opt_duration()
     	echo "scale=$_duration_precision";
     	echo "$_duration_unit * $_duration_amount";
     } | bc 
+}
+
+#
+# fmt_duration() --Format a time duration specified as seconds.
+#
+fmt_duration()
+{
+    local value=$1
+    local text=
+
+    if [ ! "$value" ]; then return 1; fi
+
+    if [ $value -gt 86400 ]; then
+	local n=$(( $value/86400 ))
+	value=$(( $value - $n*86400))
+	text="$text${n}d"
+    fi
+    if [ $value -gt 3600 ]; then
+	local n=$(( $value/3600 ))
+	value=$(( $value - $n*3600))
+	text="$text${n}h"
+    fi
+    if [ $value -gt 60 ]; then
+	local n=$(( $value/60 ))
+	value=$(( $value - $n*60))
+	text="$text${n}m"
+    fi
+    text="$text${value}s"
+    echo $text
 }
 
 #
