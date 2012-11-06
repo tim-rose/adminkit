@@ -21,7 +21,7 @@
 # based on the "log level".
 #
 . core.shl 
-if lib_loaded _log_sh $_log_sh; then return; fi
+lib_loaded _log_sh $_log_sh && return
 
 #
 # We define some variables here that control the default behaviour
@@ -34,7 +34,7 @@ export LOG_FACILITY; LOG_FACILITY=${LOG_FACILITY:-user}
 USER=${USER:-$LOGNAME}
 USER=${USER:-nobody}
 export LOG_IDENT; LOG_IDENT=$USER
-#export LOG_COLORS;
+export LOG_COLORS=${LOG_COLORS:-LOG_COLORS=debug=36:notice=1:warning=1;33:err=1;31:crit=1;33;41:alert=1;5;33;41:emerg=1;5;37;41}
 #export LOG_TIMESTAMP; LOG_TIMESTAMP='%b %d %H:%M:%S'
 LOG_GETOPTS="q.quiet;v.verbose;_.debug" # Note: not exported!
 LOG_PID=$$				# Note: not exported!
