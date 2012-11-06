@@ -11,8 +11,11 @@
 # rot13()         --translate text using Caesar's cipher, with an offset of 13.
 # choose()        --Interactively filter a set of values.
 # prompt()        --Prompt for a value, with a default.
+# prompt_ok()     --Prompt for a value and return.
 # vcs_keyword()   --Reformat a VCS Id string into something more presentable.
 # resolve_path()  --Find a file in a path-specific way.
+# is_user()       --Test if the current process is ownded by a specified user.
+# is_group()      --Test if the current process is a member of a specified group.
 # mk_dir()        --create a directory, and log about it too...
 # ln_file()       --Link a file, and log about it too...
 # abs()           --Output the absolute value of a number.
@@ -216,6 +219,19 @@ prompt()
 }
 
 #
+# prompt_ok() --Prompt for a value and return.
+#
+prompt_ok()
+{
+    local response=$(prompt "$@") || return 1
+    case $response in
+	[yY]*)	return 0;;
+	*)	;;
+    esac
+    return 1
+}
+
+#
 # vcs_keyword() --Reformat a VCS Id string into something more presentable.
 #
 # Parameter:
@@ -253,13 +269,39 @@ resolve_path()
     fi
     IFS=:
     for dir in $path; do
-    	if [ -f $dir/$1 ]; then
-	    echo $dir/$1
-	    return 0
-	fi
+	for target in $dir/$1; do	# handle globs
+    	    if [ -f "$target" ]; then
+		echo $target
+		return 0
+	    fi
+	    break
+	done
     done
     return 1
 )
+
+#
+# is_user() --Test if the current process is ownded by a specified user.
+#
+is_user()
+{
+    local target_user=$(grep "^$1:" /etc/passwd | cut -d: -f3)
+
+    test $(id -nu $1 2>/dev/null) = "$1"
+}
+
+#
+# is_group() --Test if the current process is a member of a specified group.
+#
+is_group()
+{
+    for group in $(id -Gn); do
+	if [ "$group" = "$1" ]; then
+	    return 0			# success:
+	fi
+    done
+    return 1				# failure: not found
+}
 
 #
 # mk_dir() --create a directory, and log about it too...
