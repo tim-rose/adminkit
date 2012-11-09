@@ -3,6 +3,7 @@
 # CORE.SHL --Shell Library of core functions.
 #
 # Contents:
+# require()       --load some files once-only.
 # lib-loaded()    --Test if a library has already been loaded.
 # argv_or_stdin() --output arguments (if specified) or lines from stdin.
 # match()         --Test if a string matches a pattern.

@@ -7,8 +7,9 @@
 # the system stats for the specified process.
 #
 PATH=$PATH:/usr/libexec:/usr/local/libexec
-. log.shl
-#. getopt.shl
+
+. core.shl
+require log.shl
 
 usage="procwatch [-d delay] [-f format] command"
 delay=60

@@ -14,8 +14,8 @@
 # 
 PATH=$PATH:/usr/libexec:/usr/local/libexec
 
-. log.shl
-. getopt.shl
+. core.shl
+require log.shl getopt.shl
 
 #
 # usage() --echo this script's usage message.

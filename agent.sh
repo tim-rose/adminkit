@@ -14,10 +14,8 @@
 #
 #
 PATH=$PATH:/usr/libexec:/usr/local/libexec
-. log.shl
-. getopt.shl
-. unit.shl
-. daemon.shl
+. core.shl
+require getopt.shl unit.shl daemon.shl
 
 #
 # usage() --echo this script's usage message.

@@ -3,7 +3,8 @@
 # BLOATFISH --Find, and kill processes using excessive resources.
 #
 PATH=$PATH:/usr/libexec:/usr/local/libexec
-. log.shl
+. core.shl
+require log.shl
 
 key=rss
 key_max=$((580*1024))

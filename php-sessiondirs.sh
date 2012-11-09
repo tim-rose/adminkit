@@ -3,7 +3,9 @@
 # PHP-SESSIONDIRS --Create the subdirectory structure needed for PHP sessions
 #
 PATH=$PATH:/usr/libexec:/usr/local/libexec
-. log.shl
+
+. core.shl
+require log.shl
 
 root=php-session
 depth=3

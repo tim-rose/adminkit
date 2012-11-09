@@ -10,8 +10,9 @@
 # http://newrelic.github.com/newrelic_api
 #
 PATH=$PATH:/usr/libexec:/usr/local/libexec
-. getopt.shl
-. log.shl
+. core.shl
+require getopt.shl log.shl
+
 newrelic_url='https://rpm.newrelic.com/deployments.xml'
 tmpfile=${TMPDIR:-/tmp}/$(basename $0)-$$
 
