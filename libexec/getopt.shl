@@ -39,9 +39,7 @@
 #
 #
 . core.shl
-if lib_loaded _getopt_sh $_getopt_sh; then return; fi
-
-. log.shl
+require log.shl
 
 #
 # getopt_short() --Echo the short-form of a getopt-spec.

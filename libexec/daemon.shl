@@ -15,8 +15,8 @@
 #
 #
 . core.shl
-if lib_loaded _daemon_sh $_daemon_sh; then return; fi
-. log.shl
+require log.shl
+
 _daemon_lock_id=$(basename $0)-${LOGNAME:-$USER} # default lockfile ID
 
 #

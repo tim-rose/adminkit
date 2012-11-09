@@ -1,4 +1,4 @@
-g#!/bin/sh
+#!/bin/sh
 #
 # CGI.SHL --Library of CGI functions for shell programs.
 #
@@ -17,8 +17,6 @@ g#!/bin/sh
 #
 #
 . core.shl
-. log.shl
-if lib_loaded _cgi_sh $_cgi_sh; then return; fi
 
 _cgi_http_printed=
 _cgi_http_body=

@@ -14,8 +14,7 @@
 #
 #
 . core.shl 
-if lib_loaded _config_sh $_config_sh; then return; fi
-. log.shl
+require log.shl
 
 CONFIGPATH=${CONFIGPATH:-.:$HOME:/usr/local/etc:/etc}
 

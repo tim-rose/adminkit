@@ -3,8 +3,8 @@
 # GETOPT.SH --Unit tests for the getopt module.
 #
 PATH=..:$PATH
-. getopt.shl
-. tap.shl
+. core.shl
+require getopt.shl tap.shl
 
 plan 27
 

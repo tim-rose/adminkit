@@ -26,9 +26,7 @@
 #
 #
 . core.shl
-if lib_loaded _db_sh $_db_sh; then return; fi
-. log.shl 
-. config.shl 
+require log.shl config.shl 
 
 #
 # _db_init --load default values from config and environment.

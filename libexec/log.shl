@@ -20,9 +20,7 @@
 # allows a program to log to either stderr or syslog, with some filtering
 # based on the "log level".
 #
-. core.shl 
-lib_loaded _log_sh $_log_sh && return
-
+. core.shl
 #
 # We define some variables here that control the default behaviour
 # of the logging system.  Note that they are exported, so that they

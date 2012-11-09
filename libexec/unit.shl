@@ -15,8 +15,7 @@
 #
 #
 . core.shl
-lib_loaded _unit_sh $_unit_sh && return
-. log.shl
+require  log.shl
 
 #
 # opt_duration() --Parse a simple duration specification.

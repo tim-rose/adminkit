@@ -10,8 +10,7 @@
 # add_user()     --Add some system user.
 #
 . core.shl
-if lib_loaded _debian_sh $_debian_sh; then return; fi
-. log.shl
+require log.shl
 
 #
 # deb_divert() --divert a debian config file, and link it to a surrogate.

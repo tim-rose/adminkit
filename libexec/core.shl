@@ -28,6 +28,23 @@
 # another/better place for.
 #
 #
+case "$shl_loaded" in "*:core.shl:*") return 0;; esac
+
+#
+# require() --load some files once-only.
+#
+# Remarks:
+# the variable "shl_loaded" is used to track whether a file has been loaded.
+#
+require()
+{
+    for library in "$@"; do
+	if ! match "$shl_loaded" "*:$library:*"; then
+            source "$library" && shl_loaded="$shl_loaded:$library:"
+	fi
+    done
+}
+shl_loaded=:core.shl:		# we're loaded!
 
 #
 # lib-loaded() --Test if a library has already been loaded.
