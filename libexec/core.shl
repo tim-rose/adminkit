@@ -6,6 +6,7 @@
 # require()       --load some files once-only.
 # lib-loaded()    --Test if a library has already been loaded.
 # argv_or_stdin() --output arguments (if specified) or lines from stdin.
+# quietly()       --Run a command, but dump stdout+stderr.
 # match()         --Test if a string matches a pattern.
 # str_split()     --Split a string into component pieces.
 # str_join()      --Join a list of strings with a delimiter..
@@ -29,7 +30,7 @@
 # another/better place for.
 #
 #
-case "$shl_loaded" in "*:core.shl:*") return 0;; esac
+case "$shl_loaded" in *:core.shl:*) return 0;; esac
 
 #
 # require() --load some files once-only.
@@ -39,6 +40,7 @@ case "$shl_loaded" in "*:core.shl:*") return 0;; esac
 #
 require()
 {
+    local library=
     for library in "$@"; do
 	if ! match "$shl_loaded" "*:$library:*"; then
             source "$library" && shl_loaded="$shl_loaded:$library:"
@@ -84,6 +86,15 @@ argv_or_stdin()
 	while read arg; do echo "$arg"; done
     fi
 }
+
+#
+# quietly() --Run a command, but dump stdout+stderr.
+#
+quietly()
+{
+    "$@"
+} >/dev/null 2>&1
+
 
 #
 # match() --Test if a string matches a pattern.
