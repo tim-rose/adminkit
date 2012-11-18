@@ -4,13 +4,9 @@
 #
 # Contents:
 # require()       --load some files once-only.
-# lib-loaded()    --Test if a library has already been loaded.
 # argv_or_stdin() --output arguments (if specified) or lines from stdin.
 # quietly()       --Run a command, but dump stdout+stderr.
 # match()         --Test if a string matches a pattern.
-# str_split()     --Split a string into component pieces.
-# str_join()      --Join a list of strings with a delimiter..
-# rot13()         --translate text using Caesar's cipher, with an offset of 13.
 # choose()        --Interactively filter a set of values.
 # prompt()        --Prompt for a value, with a default.
 # prompt_ok()     --Prompt for a value and return.
@@ -19,18 +15,14 @@
 # is_user()       --Test if the current process is ownded by a specified user.
 # is_group()      --Test if the current process is a member of a specified group.
 # mk_dir()        --create a directory, and log about it too...
-# abs()           --Output the absolute value of a number.
-# min()           --Output the smallest numeric value in a list.
-# max()           --Output the largest numeric value in a list.
-# num_octets()    --Convert a 32 bit number into a dotted list of 4 octets.
-# octets_num()    --Convert a dotted list of 4 octets into a 32-bit integer.
 #
 # Remarks:
 # This library contains miscellaneous routines that I don't have
 # another/better place for.
 #
-#
+
 case "$shl_loaded" in *:core.shl:*) return 0;; esac
+shl_loaded=:core.shl:		# we're loaded!
 
 #
 # require() --load some files once-only.
@@ -43,43 +35,17 @@ require()
     local library=
     for library in "$@"; do
 	if ! match "$shl_loaded" "*:$library:*"; then
-            source "$library" && shl_loaded="$shl_loaded:$library:"
+	    . "$library" && shl_loaded="$shl_loaded:$library:"
 	fi
     done
 }
-shl_loaded=:core.shl:		# we're loaded!
-
-#
-# lib-loaded() --Test if a library has already been loaded.
-#
-# Parameters:
-# $1	--the name of the variable used to indicate whether the lib was loaded
-# $2	--the current value of that variable.
-#
-# Returns:
-# Success: true; Failure: false
-# 
-# Remarks:
-# This function incurs the cost of an eval if the library isn't loaded, but
-# should be pretty fast if it is.
-#
-lib_loaded()
-{
-    if [ "$2" ]; then
-	return 0
-    else
-	eval "$1=1"		# set variable via an eval
-	return 1
-    fi
-}
-
-if lib_loaded _core_sh $_core_sh; then return; fi
 
 #
 # argv_or_stdin() --output arguments (if specified) or lines from stdin.
 #
 argv_or_stdin()
 {
+    local arg
     if [ $# -gt 0 ]; then
 	for arg; do echo "$arg"; done 
     else
@@ -94,7 +60,6 @@ quietly()
 {
     "$@"
 } >/dev/null 2>&1
-
 
 #
 # match() --Test if a string matches a pattern.
@@ -115,62 +80,6 @@ match()
 }
 
 #
-# str_split() --Split a string into component pieces.
-#
-# Parameters:
-# $1	--a string specifying the characters to split the text by
-# $2	--the string to split
-#
-# Output:
-# a list of "words" resulting from the split.
-#
-# Remarks:
-# Note that there is already a program called "split", for splitting FILES
-# into pieces.
-#
-str_split()
-(				# run in a sub-shell to localise IFS
-    IFS=$1
-    for word in $2; do
-	echo $word
-    done
-)
-
-#
-# str_join() --Join a list of strings with a delimiter..
-#
-# Parameters:
-# $1	--the delimiter
-# ...	--the strings to join
-#
-# Output:
-# The joined single string.
-#
-# Remarks:
-# Note that there is already a program called "join", for joining FILES.
-#
-str_join()
-{
-    local delimiter=$1; shift;
-    if [ $# -eq 0 ]; then
-	return
-    fi
-    printf '%s' "$1"; shift;
-    for arg in "$@"; do
-	printf '%s%s' "$delimiter" "$arg"
-    done
-    printf "\n"
-}
-
-#
-# rot13() --translate text using Caesar's cipher, with an offset of 13.
-#
-rot13()
-{
-    tr A-Za-z N-ZA-Mn-za-m
-}
-
-#
 # choose() --Interactively filter a set of values.
 #
 # Parameters:
@@ -187,6 +96,7 @@ choose()
     local list=
     local all=
     local choice=
+
     for file in "$@"; do
 	while true; do
 	    if [ "$all" ]; then
@@ -227,6 +137,7 @@ choose()
 prompt()
 {
     local read_opts=
+
     if [ "$BASH" ]; then
 	read_opts=-e		# bash supports readline
     fi
@@ -252,6 +163,7 @@ prompt()
 prompt_ok()
 {
     local response=$(prompt "$@") || return 1
+
     case $response in
 	[yY]*)	return 0;;
 	*)	;;
@@ -289,6 +201,8 @@ vcs_keyword()
 #
 resolve_path()
 (				# run in a sub-shell (b/c set IFS)
+    local path=
+
     if [ $# -eq 2 ]; then
 	path=$1
 	shift
@@ -345,68 +259,3 @@ mk_dir()
 	fi
     done
 }
-
-#
-# abs() --Output the absolute value of a number.
-#
-abs()
-{
-    if [ "$1" -lt 0 ]; then
-	echo $((-1*$1))
-    else
-	echo $1
-    fi
-} 2>/dev/null 			# ignore squeals from test -lt
-
-#
-# min() --Output the smallest numeric value in a list.
-#
-min()
-{
-    _core_min=$1
-    for _core_val; do
-	if [ "$_core_val" -lt "$_core_min" ]; then
-	    _core_min=$_core_val
-	fi
-    done
-    echo $_core_min
-} 2>/dev/null 			# ignore squeals from test -lt
-
-#
-# max() --Output the largest numeric value in a list.
-#
-max()
-{
-    _core_max=$1
-    for _core_val; do
-	if [ "$_core_val" -gt "$_core_max" ]; then
-	    _core_max=$_core_val
-	fi
-    done
-    echo $_core_max
-} 2>/dev/null			# ignore squeals from test -gt
-
-#
-# num_octets() --Convert a 32 bit number into a dotted list of 4 octets.
-#
-num_octets()
-{
-    printf "%d.%d.%d.%d\n" \
-	$(( $1 >> 24 ))  \
-	$(( ( $1 & 0xffffff ) >> 16 )) \
-	$(( ( $1 & 0xffff ) >> 8 )) \
-	$(( ( $1 & 0xff ) ))
-} 2>/dev/null			# ignore squeals from arithmetic eval
-
-#
-# octets_num() --Convert a dotted list of 4 octets into a 32-bit integer.
-#
-octets_num()
-(
-    IFS=' '			# we're in a sub-shell: IFS is local
-
-    echo $1 | sed -e "s/[.]/ /g" |
-    while read o1 o2 o3 o4; do
-	echo $(( ( $o1 << 24 ) + ( $o2 << 16 ) + ( $o3 << 8 ) + $o4 )) 
-    done
-) 2>/dev/null			# ignore squeals from arithmetic eval

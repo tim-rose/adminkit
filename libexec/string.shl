@@ -1,0 +1,68 @@
+#!/bin/sh
+#
+# STRING.SHL --Shell Library of string manipulation functions.
+#
+# Contents:
+# str_split() --Split a string into component pieces.
+# str_join()  --Join a list of strings with a delimiter..
+# rot13()     --translate text using Caesar's cipher, with an offset of 13.
+#
+
+#
+# str_split() --Split a string into component pieces.
+#
+# Parameters:
+# $1	--a string specifying the characters to split the text by
+# $2	--the string to split
+#
+# Output:
+# a list of "words" resulting from the split.
+#
+# Remarks:
+# Note that there is already a program called "split", for splitting FILES
+# into pieces.
+#
+str_split()
+(				# run in a sub-shell to localise IFS
+    local word
+    IFS=$1
+    for word in $2; do
+	echo $word
+    done
+)
+
+#
+# str_join() --Join a list of strings with a delimiter..
+#
+# Parameters:
+# $1	--the delimiter
+# ...	--the strings to join
+#
+# Output:
+# The joined single string.
+#
+# Remarks:
+# Note that there is already a program called "join", for joining FILES.
+#
+str_join()
+{
+    local delimiter=$1; shift;
+    local arg
+
+    if [ $# -eq 0 ]; then
+	return
+    fi
+    printf '%s' "$1"; shift;
+    for arg in "$@"; do
+	printf '%s%s' "$delimiter" "$arg"
+    done
+    printf "\n"
+}
+
+#
+# rot13() --translate text using Caesar's cipher, with an offset of 13.
+#
+rot13()
+{
+    tr A-Za-z N-ZA-Mn-za-m
+}
