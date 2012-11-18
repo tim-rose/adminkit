@@ -6,7 +6,7 @@ SRC_LANG	= sh nroff
 
 SH_SRC = lesspipe.sh
 SHL_SRC = cgi.shl config.shl core.shl daemon.shl db.shl debian.shl \
-    getopt.shl log.shl number.shl string.shl unit.shl
+    getopt.shl log.shl number.shl string.shl tty.shl unit.shl
 
 include devkit.mk
 
