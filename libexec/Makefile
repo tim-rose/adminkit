@@ -1,3 +1,4 @@
+MAN1_SRC = core.1
 #
 # Makefile --Build rules for adminkit's libexec directory.
 #

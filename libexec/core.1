@@ -1,0 +1,41 @@
+.\" CORE.1 --Manual page for "core.shl", core shell library functions
+.\"
+.\"
+.TH core 1 "" "" "Admin Kit"
+.SH NAME 
+core.shl \- Core adminkit library functions.
+.SH SYNOPSIS
+.SY .\ core.shl
+
+.SH DESCRIPTION
+The 
+.B core
+library contains a bunch of useful functions!
+
+.SH FUNCTIONS
+.TP 
+.BI require \ library...
+
+Load the specified shell library(ies), but once only.
+
+.TP
+.BI quietly \ command...
+
+Run the specified command quietly: with both
+.I stdout
+and
+.I stderr
+redirected to
+.IR /dev/null .
+
+.SH "BUGS"
+The adminkit functions are intended to work with both
+.BR bash (1)
+and
+.BR dash (1),
+although I haven't tested that yet.
+
+
+.SH SEE ALSO
+.BR bash (1),
+.BR dash (1)
