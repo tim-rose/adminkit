@@ -1,26 +1,63 @@
 .\" CORE.1 --Manual page for "core.shl", core shell library functions
 .\"
 .\"
-.TH core 1 "" "" "Admin Kit"
-.SH NAME 
-core.shl \- Core adminkit library functions.
+.TH core 1 2012-11-22 "Admin Kit" "The Other Manual"
+.SH NAME
+require, resolve_path, quietly, match, choose, prompt, prompt_ok,
+is_user, is_group, argv_or_stdin \- Core adminkit library functions.
+.SH LIBRARY
+Admin Kit, shell libraries and tools.
 .SH SYNOPSIS
-.SY .\ core.shl
-
+.B . core.shl
+.SY require
+.I library...
+.YS
+.SY resolve_path
+.I path
+.I fileglob
+.YS
+.SY quietly
+.I command
+.OP args...
+.YS
 .SH DESCRIPTION
-The 
+The
 .B core
 library contains a bunch of useful functions!
-
 .SH FUNCTIONS
-.TP 
-.BI require \ library...
-
+.TP
+.BI require\   library...
 Load the specified shell library(ies), but once only.
-
+.B require
+remembers the libraries that have already been loaded by storing the name
+in the
+.B $shl_loaded
+variable.
+The files are loaded using the shell's file inclusion mechanism, which
+searches for the target files using
+.BR $PATH .
+.TP
+.BI resolve_path\  path \  fileglob
+Find a file using a specified path, and output the matching path to
+.IR stdout .
+The
+.I path
+value is in the same format as other shell path lists (e.g.
+.BR PATH ,
+.BR MANPATH ,
+etc.
+The
+.I fileglob
+value is a filename that can contain the "glob" file wildcards
+(e.g. "x*.[ch]").
+The first matching file is printed.  I don't think file glob
+expansions are guaranteed to be sorted, so this might return
+surprising results in some circumstances.  If no match is found,
+nothing is printed and
+.B resolve_path
+returns an error status.
 .TP
 .BI quietly \ command...
-
 Run the specified command quietly: with both
 .I stdout
 and

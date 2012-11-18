@@ -4,16 +4,16 @@
 #
 # Contents:
 # require()       --load some files once-only.
-# argv_or_stdin() --output arguments (if specified) or lines from stdin.
+# resolve_path()  --Find a file in a path-specific way.
 # quietly()       --Run a command, but dump stdout+stderr.
 # match()         --Test if a string matches a pattern.
 # choose()        --Interactively filter a set of values.
 # prompt()        --Prompt for a value, with a default.
 # prompt_ok()     --Prompt for a value and return.
 # vcs_keyword()   --Reformat a VCS Id string into something more presentable.
-# resolve_path()  --Find a file in a path-specific way.
 # is_user()       --Test if the current process is ownded by a specified user.
 # is_group()      --Test if the current process is a member of a specified group.
+# argv_or_stdin() --output arguments (if specified) or lines from stdin.
 # mk_dir()        --create a directory, and log about it too...
 #
 # Remarks:
@@ -41,17 +41,34 @@ require()
 }
 
 #
-# argv_or_stdin() --output arguments (if specified) or lines from stdin.
+# resolve_path() --Find a file in a path-specific way.
 #
-argv_or_stdin()
-{
-    local arg
-    if [ $# -gt 0 ]; then
-	for arg; do echo "$arg"; done 
+# Parameters:
+# path	--the path to search (optional, default: $PATH )
+# file	--the file 
+#
+resolve_path()
+(				# run in a sub-shell (b/c set IFS)
+    local path=
+
+    if [ $# -eq 2 ]; then
+	path=$1
+	shift
     else
-	while read arg; do echo "$arg"; done
+	path=$PATH
     fi
-}
+    IFS=:
+    for dir in $path; do
+	for target in $dir/$1; do	# handle globs
+    	    if [ -f "$target" ]; then
+		echo $target
+		return 0
+	    fi
+	    break
+	done
+    done
+    return 1
+)
 
 #
 # quietly() --Run a command, but dump stdout+stderr.
@@ -193,36 +210,6 @@ vcs_keyword()
 }
 
 #
-# resolve_path() --Find a file in a path-specific way.
-#
-# Parameters:
-# path	--the path to search (optional, default: $PATH )
-# file	--the file 
-#
-resolve_path()
-(				# run in a sub-shell (b/c set IFS)
-    local path=
-
-    if [ $# -eq 2 ]; then
-	path=$1
-	shift
-    else
-	path=$PATH
-    fi
-    IFS=:
-    for dir in $path; do
-	for target in $dir/$1; do	# handle globs
-    	    if [ -f "$target" ]; then
-		echo $target
-		return 0
-	    fi
-	    break
-	done
-    done
-    return 1
-)
-
-#
 # is_user() --Test if the current process is ownded by a specified user.
 #
 is_user()
@@ -243,6 +230,19 @@ is_group()
 	fi
     done
     return 1				# failure: not found
+}
+
+#
+# argv_or_stdin() --output arguments (if specified) or lines from stdin.
+#
+argv_or_stdin()
+{
+    local arg
+    if [ $# -gt 0 ]; then
+	for arg; do echo "$arg"; done 
+    else
+	while read arg; do echo "$arg"; done
+    fi
 }
 
 #
