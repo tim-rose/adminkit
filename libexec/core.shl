@@ -15,6 +15,7 @@
 # is_group()      --Test if the current process is a member of a specified group.
 # argv_or_stdin() --output arguments (if specified) or lines from stdin.
 # mk_dir()        --create a directory, and log about it too...
+# this_shell()    --Return a string identifying the current shell.
 #
 # Remarks:
 # This library contains miscellaneous routines that I don't have
@@ -109,7 +110,7 @@ match()
 # This is similar to the bash "select" command.
 #
 choose()
-{				# run in a sub-shell to localise var.s
+{
     local list=
     local all=
     local choice=
@@ -119,7 +120,7 @@ choose()
 	    if [ "$all" ]; then
 		choice=y
 	    else
-		read -n1 -p "$file? [ynaq]: " choice
+		read -n1 -p "$file? [ynaq]: " choice # REVISIT: bashism!
 		echo;			# get to a newline
 	    fi
 	    if match $choice [yYnNaAqQ]; then
@@ -258,4 +259,12 @@ mk_dir()
 	    fi
 	fi
     done
+}
+
+#
+# this_shell() --Return a string identifying the current shell.
+#
+this_shell()
+{
+    ps -o comm $$ | sed -e1d -es/^-//
 }
