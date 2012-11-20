@@ -17,8 +17,22 @@ Admin Kit, shell libraries and tools.
 .I fileglob
 .YS
 .SY quietly
-.I command
-.OP args...
+.I command...
+.YS
+.SY match
+.I string
+.I glob
+.YS
+.SY choose
+.I items...
+.YS
+.SY prompt
+.I text
+.RI [ default ]
+.YS
+.SY prompt_ok
+.I text
+.RI [ default ]
 .YS
 .SH DESCRIPTION
 The
@@ -31,18 +45,19 @@ Load the specified shell library(ies), but once only.
 .B require
 remembers the libraries that have already been loaded by storing the name
 in the
-.B $shl_loaded
+.B shl_loaded
 variable.
-The files are loaded using the shell's file inclusion mechanism, which
+The files are loaded via the shell's file inclusion mechanism, which
 searches for the target files using
-.BR $PATH .
+.BR PATH .
 .TP
 .BI resolve_path\  path \  fileglob
-Find a file using a specified path, and output the matching path to
+Find a file, searching the directories in a specified path list, and output
+the matching pathname to
 .IR stdout .
 The
 .I path
-value is in the same format as other shell path lists (e.g.
+value is a colon-separated list of directories, in the same format as other shell path lists (e.g.
 .BR PATH ,
 .BR MANPATH ,
 etc.
@@ -50,21 +65,48 @@ The
 .I fileglob
 value is a filename that can contain the "glob" file wildcards
 (e.g. "x*.[ch]").
-The first matching file is printed.  I don't think file glob
-expansions are guaranteed to be sorted, so this might return
-surprising results in some circumstances.  If no match is found,
+The first matching file is printed.  File glob
+expansions are not guaranteed to be sorted, so this may return
+surprising results if more than one could match.  If no match is found,
 nothing is printed and
 .B resolve_path
 returns an error status.
 .TP
-.BI quietly \ command...
+.BI quietly\  command...
 Run the specified command quietly: with both
 .I stdout
 and
 .I stderr
 redirected to
 .IR /dev/null .
+.TP
+.BI match\  string \  glob
+Matches
+.I string
+agains the specified 
+.I glob
+(file wildcard pattern).
+Returns true if the pattern matched, false if it didn't.
+.TP
+.BI choose\  items...
+The
+.B choose
+function presents the supplied list of items one at a time, and
+prompts for a yes/no/all/quit response for each of them.  Each of the
+items that were selected are printed to
+.IR stdout .
+If the response is "quit", then
+.B choose
+will return immediately with a failure (although some selected items
+may have already been printed).  For example, to confirm the deletion
+of some files:
 
+.EX
+rm_confirm()
+{
+    rm $(choose "$@")
+}
+.EE
 .SH "BUGS"
 The adminkit functions are intended to work with both
 .BR bash (1)
