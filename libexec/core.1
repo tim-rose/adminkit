@@ -83,7 +83,7 @@ redirected to
 .BI match\  string \  glob
 Matches
 .I string
-agains the specified 
+agains the specified
 .I glob
 (file wildcard pattern).
 Returns true if the pattern matched, false if it didn't.
@@ -107,6 +107,35 @@ rm_confirm()
     rm $(choose "$@")
 }
 .EE
+.TP
+.BI prompt\  text \  [default]
+Print
+.I text
+as a prompt to
+.IR stderr ,
+read a response from
+.I stdin
+and echo it to
+.IR stdout .
+If
+.I default
+is provided, it will be incorporated into the prompt text, and, if the
+response is empty, echoed as the result.
+.B prompt
+returns the success or failure of the read.
+.TP
+.BI prompt_ok\  text \  [default]
+Similar to
+.BR prompt ,
+this function prints
+.I text
+(and
+.IR default ,
+if supplied) to the
+.IR stderr ,
+and returns true if the user responds in a "yes-like" way (i.e. either
+a simple "y" or the word "yes", ignoring case), false otherwise.
+
 .SH "BUGS"
 The adminkit functions are intended to work with both
 .BR bash (1)
