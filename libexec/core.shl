@@ -11,7 +11,7 @@
 # prompt()        --Prompt for a value, with a default.
 # prompt_ok()     --Prompt for a value and return.
 # vcs_keyword()   --Reformat a VCS Id string into something more presentable.
-# is_user()       --Test if the current process is ownded by a specified user.
+# is_user()       --Test if the current process is owned by a specified user.
 # is_group()      --Test if the current process is a member of a specified group.
 # argv_or_stdin() --output arguments (if specified) or lines from stdin.
 # mk_dir()        --create a directory, and log about it too...
@@ -50,7 +50,7 @@ require()
 #
 resolve_path()
 (				# run in a sub-shell (b/c set IFS)
-    local path=
+    local path=			# REVISIT: honour absolute paths...
 
     if [ $# -eq 2 ]; then
 	path=$1
@@ -180,10 +180,11 @@ prompt()
 #
 prompt_ok()
 {
-    local response=$(prompt "$@") || return 1
+    local response=$(prompt "$@") || return 2
 
     case $response in
-	[yY]*)	return 0;;
+	[yY])	return 0;;
+	[yY][eE][sS])	return 0;;
 	*)	;;
     esac
     return 1
@@ -211,12 +212,10 @@ vcs_keyword()
 }
 
 #
-# is_user() --Test if the current process is ownded by a specified user.
+# is_user() --Test if the current process is owned by a specified user.
 #
 is_user()
 {
-    local target_user=$(grep "^$1:" /etc/passwd | cut -d: -f3)
-
     test $(id -nu $1 2>/dev/null) = "$1"
 }
 
@@ -239,6 +238,7 @@ is_group()
 argv_or_stdin()
 {
     local arg
+
     if [ $# -gt 0 ]; then
 	for arg; do echo "$arg"; done 
     else
