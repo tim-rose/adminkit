@@ -78,7 +78,9 @@ fmt_duration()
 	value=$(( $value - $n*60))
 	text="$text${n}m"
     fi
-    text="$text${value}s"
+    if [ ! "$text" -o $value -gt 0 ]; then
+	text="$text${value}s"
+    fi
     echo $text
 }
 
