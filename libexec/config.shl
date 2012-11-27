@@ -2,9 +2,11 @@
 # CONFIG.SHL --Shell Library for processing config files.
 #
 # Contents:
-# config_filter()  --Filter config lines into simple shell assignments.
-# config_section() --Extract the definitions in a particular section of config.
-# load_config()    --Load config definitions for section from a file.
+# config_path()     --Resolve the configuration file using CONFIGPATH.
+# config_filter()   --Filter config lines into simple shell assignments.
+# config_sections() --Output a list of the config file's sections.
+# config_section()  --Extract the definitions in a particular section of config.
+# load_config()     --Load config definitions for section from a file.
 #
 # Remarks:
 # This library contains routines for processing classic/common "INI" style
@@ -17,6 +19,14 @@
 require log.shl
 
 CONFIGPATH=${CONFIGPATH:-.:$HOME:/usr/local/etc:/etc}
+
+#
+# config_path() --Resolve the configuration file using CONFIGPATH.
+#
+config_path()
+{
+    resolve_path ${CONFIGPATH} "$1"
+}
 
 #
 # config_filter() --Filter config lines into simple shell assignments.
@@ -37,13 +47,26 @@ CONFIGPATH=${CONFIGPATH:-.:$HOME:/usr/local/etc:/etc}
 #
 config_filter()
 {
+    local prefix=$1
+
     sed -e 's/#.*//' \
 	-e '/^[ 	]*$/d' \
-	-e "s/^[ 	]*/$1/" \
+	-e "s/^[ 	]*/$prefix/" \
 	-e 's/[ 	]*$//' \
 	-e 's/[ 	]*=[ 	]*/=/' \
 	-e "/=[^'\"].*[ 	]/s/=\(.*\)/='\1'/" # assignment cleanups
 }
+
+#
+# config_sections() --Output a list of the config file's sections.
+#
+config_sections()
+{
+    local path=$(config_path "$1") || return 1
+    sed -n -e '/\[default\]/d' \
+	-e '/^[[][^][]*[]]$/s/^[[]\([^][]*\)[]]/\1/p' <$path
+}
+
 
 #
 # config_section() --Extract the definitions in a particular section of config.
@@ -60,18 +83,14 @@ config_filter()
 #
 config_section()
 {
-    if match "$1" '[./]*'; then
-	_path=$1
-    else
-	_path=$(resolve_path ${CONFIGPATH} $1)
-    fi
-    if [ ! "$_path" ]; then
-	return;
-    fi;
-    debug 'config_section: %s[%s], prefix="%s")' $_path $2 $3
-    sed -ne "/^[[]$2[]]\$/,\$p" <$_path | # start of section
+    local file=$1 section=$2 prefix=$3
+
+    local path=$(config_path "$file") || return 1
+
+    debug 'config_section: %s[%s], prefix="%s")' $path $section $prefix
+    sed -ne "/^[[]$2[]]\$/,\$p" <$path | # start of section
         sed -e 1d -e '/^[[]/,$d' | 	  # end of section
-	config_filter $3
+	config_filter $prefix
 }
 
 #
@@ -88,6 +107,8 @@ config_section()
 #
 load_config()
 {
-    eval $(config_section $1 default $3)
-    eval $(config_section $*)
+    local file=$1 section=$2 prefix=$3
+
+    eval $(config_section "$file" default "$prefix")
+    eval $(config_section "$@")
 }
