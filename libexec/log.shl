@@ -38,7 +38,7 @@ LOG_GETOPTS="q.quiet;v.verbose;_.debug" # Note: not exported!
 LOG_PID=$$				# Note: not exported!
 _log_status=1				# exit status for log_quit
 
-need caller 
+#need caller	# TODO: handle this need better...
 
 #
 # log_init() --Initialise variables used to render stderr messages.
