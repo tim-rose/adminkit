@@ -38,30 +38,30 @@ LOG_GETOPTS="q.quiet;v.verbose;_.debug" # Note: not exported!
 LOG_PID=$$				# Note: not exported!
 _log_status=1				# exit status for log_quit
 
+need caller 
+
 #
-# _log_init() --Initialise variables used to render stderr messages.
+# log_init() --Initialise variables used to render stderr messages.
 #
 # Remarks:
 # If the current stderr is not a tty, the variables remain undefined.
 # The stderr-reporting logic relies on this.
 #
-_log_init()
+log_init()
 {
     if [ "$(tty <&2)" != "not a tty" ]; then
-	_log_ifs="$IFS"
-	IFS=:
+	local IFS=:
 	for level in $LOG_COLORS; do
-	    echo $level | sed -e 's/^/_log_attr_/' -e 's/=/="/' -e 's/$/"/'
+	    echo $level | sed -e 's/^/log_attr_/' -e 's/=/="/' -e 's/$/"/'
 	done
-	IFS="$_log_ifs"
     fi
 }
-eval $(_log_init)		# apply/import the variable definitions...
+eval $(log_init)		# apply/import the variable definitions...
 
 #
-# _log_level_number() --Return the numeric code for a log level.
+# log_level_number() --Return the numeric code for a log level.
 #
-_log_level_number()
+log_level_number()
 {
     case $1 in
     (7|emerg)	echo 7;;
@@ -77,9 +77,9 @@ _log_level_number()
 }
 
 #
-# _log_level_name() --Return the textual name for a log level.
+# log_level_name() --Return the textual name for a log level.
 #
-_log_level_name()
+log_level_name()
 {
     case $1 in
     (7|emerg)	echo 'emerg';;
@@ -95,24 +95,24 @@ _log_level_name()
 }
 
 #
-# _log_level_color() --Return the rendering color for a log level.
+# log_level_color() --Return the rendering color for a log level.
 #
-_log_level_color()
+log_level_color()
 {
     case $1 in
-    (7|emerg)	echo $_log_attr_emerg;;
-    (6|alert)	echo $_log_attr_alert;;
-    (5|crit)	echo $_log_attr_crit;;
-    (4|err)	echo $_log_attr_err;;
-    (3|warning)	echo $_log_attr_warning;;
-    (2|notice)	echo $_log_attr_notice;;
-    (1|info)	echo $_log_attr_info;;
-    (0|debug)	echo $_log_attr_debug;;
+    (7|emerg)	echo $log_attr_emerg;;
+    (6|alert)	echo $log_attr_alert;;
+    (5|crit)	echo $log_attr_crit;;
+    (4|err)	echo $log_attr_err;;
+    (3|warning)	echo $log_attr_warning;;
+    (2|notice)	echo $log_attr_notice;;
+    (1|info)	echo $log_attr_info;;
+    (0|debug)	echo $log_attr_debug;;
     esac
 }
 
 #
-# _log_context() --Return a "context" line that includes the severity.
+# log_context() --Return a "context" line that includes the severity.
 #
 # Parameter:
 # $1	--the severity
@@ -120,7 +120,7 @@ _log_level_color()
 # Remarks:
 # This only works for bash!
 #
-_log_context()
+log_context()
 {
     caller 2 | sed -e "s/\([^ ]*\) *\([^ ]*\) *\(.*\)/\2:\3:\1: $1:/"
 }
@@ -141,59 +141,69 @@ _log_context()
 # Note that to simulate syslog's date format, set LOG_TIMESTAMP
 # to '%b %d %H:%M:%S'.
 #
+# TODO: add support of logger(1)-style stdin handling
+#
 log_msg()
 {
-    _log_level=$(_log_level_number $1)
-    if [ $_log_level -lt $(_log_level_number $LOG_LEVEL) ]; then
+    local log_level=$(log_level_number $1)
+
+    if [ $log_level -lt $(log_level_number $LOG_LEVEL) ]; then
 	return;
     fi
-    _log_priority=$(_log_level_name $1); shift
-    _log_prefix=
+
+    local log_priority=$(log_level_name $1); shift
+    local log_prefix=
+
     if [ "$1" = '-c' ]; then
 	shift;				# provide developer context
-	_log_prefix=$(_log_context $_log_priority)
+	log_prefix=$(log_context $log_priority)
     fi
-    if [ ! "$_log_prefix" ]; then
-	_log_prefix="$_log_priority:"
+    if [ ! "$log_prefix" ]; then
+	log_prefix="$log_priority:"
     fi
 
-    _log_msg=$(printf "$@")
+    if [ $# -eq 1 ]; then
+	local log_msg=$1
+    else
+	local log_msg=$(printf "$@")
+    fi
+
     case "$LOG_OUTPUT" in
     *syslog*)			# send to syslog
 	logger -t "${LOG_IDENT}[$LOG_PID]" \
-	    -p ${LOG_FACILITY}.${_log_priority} \
-	    "$_log_prefix $_log_msg" 
+	    -p ${LOG_FACILITY}.${log_priority} \
+	    "$log_prefix $log_msg" 
 	;;
     *stderr*)			# display to stderr, w/ possible highlighting
 	if [ "$LOG_TIMESTAMP" ]; then
-	    _log_prefix="$(date "+$LOG_TIMESTAMP") $_log_prefix"
+	    log_prefix="$(date "+$LOG_TIMESTAMP") $log_prefix"
 	fi
-	_log_color=$(_log_level_color $_log_level)
-	if [ "$_log_color" ]; then
+	log_color=$(log_level_color $log_level)
+	if [ "$log_color" ]; then
 	    printf "\033[%sm%s\033[m\n" \
-		$_log_color "$_log_prefix $_log_msg" >&2
+		$log_color "$log_prefix $log_msg" >&2
 	else
-	    echo "$_log_prefix $_log_msg" >&2
+	    echo "$log_prefix $log_msg" >&2
 	fi
 	;;
     *xterm*)			# display in xterm's title-bar and icon text!
-	printf "\033]1;%s\007" "$_log_msg" >/dev/tty
-	printf "\033]2;%s\007" "$_log_msg" >/dev/tty
+	printf "\033]1;%s\007" "$log_msg" >/dev/tty
+	printf "\033]2;%s\007" "$log_msg" >/dev/tty
 	;;
     #
     # growl is a Mac-only system, but there are similar systems for
     # Linux (gnotify?) and Windows (???)
     #
     # *growl*)
-    # 	_log_level=$((5 - $_log_level))	# adjust log-level for growl...
-    # 	if [ $_log_level -gt 2 ]; then
-    # 	    _log_level=2
+    # 	log_level=$((5 - $log_level))	# adjust log-level for growl...
+    # 	if [ $log_level -gt 2 ]; then
+    # 	    log_level=2
     # 	fi
-    # 	_log_growl_opts="-p $_log_level -d $LOG_IDENT"
+    # 	log_growl_opts="-p $log_level -d $LOG_IDENT"
     # 	if [ "$LOG_ICON" ]; then
-    # 	    _log_growl_opts="$_log_growl_opts -a $LOG_ICON"
+    # 	    log_growl_opts="$log_growl_opts -a $LOG_ICON"
     # 	fi	    
-    # 	growlnotify $_log_growl_opts -m "$_log_msg" "$LOG_IDENT $_log_priority"
+    # 	growlnotify $log_growl_opts -m "$log_msg" "$LOG_IDENT $log_priority"
     # 	;;
     *)  ;;			# default: silently do nothing.
     esac
@@ -205,7 +215,7 @@ log_msg()
 log_quit()
 {
     log_msg err "$@"
-    exit $_log_status
+    exit $log_status
 }
 
 #
@@ -238,10 +248,9 @@ trace_debug()   { log_msg debug -c   "$@"; }
 # 
 log_getopts()
 {
-    if   [ "$quiet" ];   then LOG_LEVEL=warning;
-    elif [ "$verbose" ]; then LOG_LEVEL=info;
-    elif [ "$debug" ];   then LOG_LEVEL=debug;
-    fi
+    if [ "$quiet" ];   then LOG_LEVEL=warning; fi
+    if [ "$verbose" ]; then LOG_LEVEL=info; fi
+    if [ "$debug" ];   then LOG_LEVEL=debug; fi
 }
 
 #
