@@ -6,6 +6,7 @@
 # require()       --load some files once-only.
 # resolve_path()  --Find a file in a path-specific way.
 # quietly()       --Run a command, but dump stdout+stderr.
+# need()          --Test if some commands are available to the current shell.
 # match()         --Test if a string matches a pattern.
 # choose()        --Interactively filter a set of values.
 # prompt()        --Prompt for a value, with a default.
@@ -78,6 +79,29 @@ quietly()
 {
     "$@"
 } >/dev/null 2>&1
+
+#
+# need() --Test if some commands are available to the current shell.
+#
+# Parameters:
+# $*	--the names of the commands that are needed.
+#
+# Returns:
+# Success: all commands are available; Failure: some commands not available.
+#
+need()
+{
+    local status=0
+    local script=$(basename $0)
+
+    for cmd; do
+	if ! quietly type "$cmd"; then
+	    warning '%s: the command "%s" is needed' $script "$cmd"
+	    status=1
+	fi
+    done
+    return $status
+}
 
 #
 # match() --Test if a string matches a pattern.
