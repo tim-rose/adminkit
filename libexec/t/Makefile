@@ -4,7 +4,7 @@
 #
 SRC_LANG = sh
 
-SH_SRC = getopt.sh
+SH_SRC = getopt.sh unit.sh
 TAP_TESTS = $(SH_SRC:%.sh=%)
 
 include devkit.mk tap.mk
