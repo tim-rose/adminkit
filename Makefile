@@ -3,8 +3,8 @@
 #
 #
 PACKAGE	= adminkit
-VERSION	= 0.1
-RELEASE	= 1
+VERSION	= 0.2
+RELEASE	= 0
 ARCH	= all
 SRC_LANG	= sh nroff
 
