@@ -64,15 +64,15 @@ eval $(log_init)		# apply/import the variable definitions...
 log_level_number()
 {
     case $1 in
-    (7|emerg)	echo 7;;
-    (6|alert)	echo 6;;
-    (5|crit)	echo 5;;
-    (4|err)	echo 4;;
-    (3|warning)	echo 3;;
-    (2|notice)	echo 2;;
-    (1|info)	echo 1;;
-    (0|debug)	echo 0;;
-    (*)		echo 7;;
+    7|emerg)	echo 7;;
+    6|alert)	echo 6;;
+    5|crit)	echo 5;;
+    4|err)	echo 4;;
+    3|warning)	echo 3;;
+    2|notice)	echo 2;;
+    1|info)	echo 1;;
+    0|debug)	echo 0;;
+    *)		echo 7;;
     esac
 }
 
@@ -82,15 +82,15 @@ log_level_number()
 log_level_name()
 {
     case $1 in
-    (7|emerg)	echo 'emerg';;
-    (6|alert)	echo 'alert';;
-    (5|crit)	echo 'crit';;
-    (4|err)	echo 'err';;
-    (3|warning)	echo 'warning';;
-    (2|notice)	echo 'notice';;
-    (1|info)	echo 'info';;
-    (0|debug)	echo 'debug';;
-    (*)		echo 'unknown';;
+    7|emerg)	echo 'emerg';;
+    6|alert)	echo 'alert';;
+    5|crit)	echo 'crit';;
+    4|err)	echo 'err';;
+    3|warning)	echo 'warning';;
+    2|notice)	echo 'notice';;
+    1|info)	echo 'info';;
+    0|debug)	echo 'debug';;
+    *)		echo 'unknown';;
     esac
 }
 
@@ -100,14 +100,14 @@ log_level_name()
 log_level_color()
 {
     case $1 in
-    (7|emerg)	echo $log_attr_emerg;;
-    (6|alert)	echo $log_attr_alert;;
-    (5|crit)	echo $log_attr_crit;;
-    (4|err)	echo $log_attr_err;;
-    (3|warning)	echo $log_attr_warning;;
-    (2|notice)	echo $log_attr_notice;;
-    (1|info)	echo $log_attr_info;;
-    (0|debug)	echo $log_attr_debug;;
+    7|emerg)	echo $log_attr_emerg;;
+    6|alert)	echo $log_attr_alert;;
+    5|crit)	echo $log_attr_crit;;
+    4|err)	echo $log_attr_err;;
+    3|warning)	echo $log_attr_warning;;
+    2|notice)	echo $log_attr_notice;;
+    1|info)	echo $log_attr_info;;
+    0|debug)	echo $log_attr_debug;;
     esac
 }
 
@@ -163,7 +163,7 @@ log_msg()
     fi
 
     if [ $# -eq 1 ]; then
-	local log_msg=$1
+	local log_msg="$1"
     else
 	local log_msg=$(printf "$@")
     fi
