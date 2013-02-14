@@ -168,46 +168,46 @@ log_msg()
 	local log_msg=$(printf "$@")
     fi
 
-    case "$LOG_OUTPUT" in *syslog*) # send to syslog
-	logger -t "${LOG_IDENT}[$LOG_PID]" \
-	    -p ${LOG_FACILITY}.${log_priority} \
-	    "$log_prefix $log_msg" 
-	;;
-    esac
-    case "$LOG_OUTPUT" in *stderr*) # send to stderr, w/ possible highlighting
-	if [ "$LOG_TIMESTAMP" ]; then
-	    log_prefix="$(date "+$LOG_TIMESTAMP") $log_prefix"
-	fi
-	log_color=$(log_level_color $log_level)
-	if [ "$log_color" ]; then
-	    printf "\033[%sm%s\033[m\n" \
-		$log_color "$log_prefix $log_msg" >&2
-	else
-	    echo "$log_prefix $log_msg" >&2
-	fi
-	;;
-    esac
-    case "$LOG_OUTPUT" in *xterm*) # display in xterm's title-bar and icon text
-	printf "\033]1;%s\007" "$log_msg" >/dev/tty
-	printf "\033]2;%s\007" "$log_msg" >/dev/tty
-	;;
-    esac
-    #
-    # growl is a Mac-only system, but there are similar systems for
-    # Linux (gnotify?) and Windows (???)
-    #
-    # case "$LOG_OUTPUT" in *growl*)
-    # 	log_level=$((5 - $log_level))	# adjust log-level for growl...
-    # 	if [ $log_level -gt 2 ]; then
-    # 	    log_level=2
-    # 	fi
-    # 	log_growl_opts="-p $log_level -d $LOG_IDENT"
-    # 	if [ "$LOG_ICON" ]; then
-    # 	    log_growl_opts="$log_growl_opts -a $LOG_ICON"
-    # 	fi	    
-    # 	growlnotify $log_growl_opts -m "$log_msg" "$LOG_IDENT $log_priority"
-    # 	;;
-    # esac
+    local IFS=:
+    for output in $LOG_OUTPUT; do
+	case "$output" in
+        syslog)
+	    logger -t "${LOG_IDENT}[$LOG_PID]" \
+		-p ${LOG_FACILITY}.${log_priority} \
+		"$log_prefix $log_msg"
+	    ;;
+	stderr)			# stderr, with colours
+	    if [ "$LOG_TIMESTAMP" ]; then
+		log_prefix="$(date "+$LOG_TIMESTAMP") $log_prefix"
+	    fi
+	    log_color=$(log_level_color $log_level)
+	    if [ "$log_color" ]; then
+		printf "\033[%sm%s\033[m\n" \
+		    $log_color "$log_prefix $log_msg" >&2
+	    else
+		echo "$log_prefix $log_msg" >&2
+	    fi
+	    ;;
+	xterm)
+	    printf "\033]0;%s\007" "$log_msg" >/dev/tty # icon+title
+	    ;;
+	growl)
+	    #
+	    # growl is a Mac-only system, but there are similar systems for
+	    # Linux (gnotify?) and Windows (???)
+	    #
+	    log_level=$((5 - $log_level))	# adjust log-level for growl...
+	    if [ $log_level -gt 2 ]; then
+		log_level=2
+	    fi
+	    log_growl_opts="-p $log_level -d $LOG_IDENT"
+	    if [ "$LOG_ICON" ]; then
+		log_growl_opts="$log_growl_opts -a $LOG_ICON"
+	    fi
+	    growlnotify $log_growl_opts -m "$log_msg" "$LOG_IDENT $log_priority"
+	    ;;
+	esac
+    done
 }
 
 #
