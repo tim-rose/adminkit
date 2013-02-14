@@ -168,15 +168,13 @@ log_msg()
 	local log_msg=$(printf "$@")
     fi
 
-    case "$LOG_OUTPUT" in
-    *syslog*)			# send to syslog
+    case "$LOG_OUTPUT" in *syslog*) # send to syslog
 	logger -t "${LOG_IDENT}[$LOG_PID]" \
 	    -p ${LOG_FACILITY}.${log_priority} \
 	    "$log_prefix $log_msg" 
 	;;
     esac
-    case "$LOG_OUTPUT" in
-    *stderr*)			# display to stderr, w/ possible highlighting
+    case "$LOG_OUTPUT" in *stderr*) # send to stderr, w/ possible highlighting
 	if [ "$LOG_TIMESTAMP" ]; then
 	    log_prefix="$(date "+$LOG_TIMESTAMP") $log_prefix"
 	fi
@@ -189,8 +187,7 @@ log_msg()
 	fi
 	;;
     esac
-    case "$LOG_OUTPUT" in
-    *xterm*)			# display in xterm's title-bar and icon text!
+    case "$LOG_OUTPUT" in *xterm*) # display in xterm's title-bar and icon text
 	printf "\033]1;%s\007" "$log_msg" >/dev/tty
 	printf "\033]2;%s\007" "$log_msg" >/dev/tty
 	;;
@@ -199,8 +196,7 @@ log_msg()
     # growl is a Mac-only system, but there are similar systems for
     # Linux (gnotify?) and Windows (???)
     #
-    # case "$LOG_OUTPUT" in
-    # *growl*)
+    # case "$LOG_OUTPUT" in *growl*)
     # 	log_level=$((5 - $log_level))	# adjust log-level for growl...
     # 	if [ $log_level -gt 2 ]; then
     # 	    log_level=2
