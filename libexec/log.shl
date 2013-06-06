@@ -3,17 +3,17 @@
 # LOG.SHL --Shell Library code for logging to stderr/syslog.
 #
 # Contents:
-# _log_init()         --Initialise variables used to render stderr messages.
-# _log_level_number() --Return the numeric code for a log level.
-# _log_level_name()   --Return the textual name for a log level.
-# _log_level_color()  --Return the rendering color for a log level.
-# _log_context()      --Return a "context" line that includes the severity.
-# log_msg()           --Log a message to stderr or syslog.
-# log_quit()          --Log a message and quit.
-# emerg()             --Log an emergency message.
-# log_getopts()       --Set the logging options based on variables set by LOG_GETOPTS.
-# log_cmd()           --Log a command and then run it.
-# log_var()           --Log the value of some variables
+# log_init()         --Initialise variables used to render stderr messages.
+# log_level_number() --Return the numeric code for a log level.
+# log_level_name()   --Return the textual name for a log level.
+# log_level_color()  --Return the rendering color for a log level.
+# log_context()      --Return a "context" line that includes the severity.
+# log_msg()          --Log a message to stderr or syslog.
+# log_quit()         --Log a message and quit.
+# emerg()            --Log an emergency message.
+# log_getopts()      --Set the logging options based on variables set by LOG_GETOPTS.
+# log_cmd()          --Log a command and then run it.
+# log_var()          --Log the value of some variables
 #
 # Remarks:
 # This library provides some customisation over logging facilities that
@@ -259,7 +259,7 @@ log_getopts()
 #
 log_cmd()
 {
-    debug "exec: $*"; "$@"
+    debug "executing: $*"; "$@"
 }
 
 #
