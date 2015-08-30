@@ -4,15 +4,16 @@
 #
 PACKAGE	= adminkit
 VERSION	= 0.2
-RELEASE	= 1
+RELEASE	= 2
 ARCH	= all
-SRC_LANG	= sh nroff
+language = sh nroff
 
 MAN1_SRC = db-export.1 mkchroot.1
 SH_SRC = agent.sh bloatfish.sh db-export.sh ftp-delete.sh \
     ftp-upload.sh gen-password.sh mkchroot.sh nr-deploy.sh \
     procwatch.sh pstiche.sh sslogin.sh
 SED_SRC = tsv-to-csv.sed www-to-tsv.sed
+AWK_SRC = csv-to-tsv.awk
 
 include devkit.mk package.mk
 
@@ -20,4 +21,5 @@ installdirs:	$(man1dir) $(bindir)
 install:	$(MAN1_SRC:%.1=$(man1dir)/%.1)
 install:	$(SH_SRC:%.sh=$(bindir)/%)
 install:	$(SED_SRC:%.sed=$(bindir)/%)
+install:	$(AWK_SRC:%.awk=$(bindir)/%)
 install:	$(C_MAIN:$(archdir)/%=$(bindir)/%)
