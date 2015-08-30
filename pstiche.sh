@@ -5,9 +5,9 @@
 # Remarks:
 # This command runs a ps command within a delay loop
 #
-#PATH=$PATH:/usr/libexec:/usr/local/libexec
-#. log.shl
-#. getopt.shl
+#. midden
+#require log
+#require getopt
 
 usage="procwatch [-d delay] [-f format] command"
 delay=60

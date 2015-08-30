@@ -8,8 +8,8 @@
 #
 PATH=$PATH:/usr/libexec:/usr/local/libexec
 
-. core.shl
-require log.shl
+. midden
+require log
 
 usage="procwatch [-d delay] [-f format] command"
 delay=60

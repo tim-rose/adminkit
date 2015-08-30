@@ -17,9 +17,4 @@ AWK_SRC = csv-to-tsv.awk
 
 include devkit.mk package.mk
 
-installdirs:	$(man1dir) $(bindir)
-install:	$(MAN1_SRC:%.1=$(man1dir)/%.1)
-install:	$(SH_SRC:%.sh=$(bindir)/%)
-install:	$(SED_SRC:%.sed=$(bindir)/%)
-install:	$(AWK_SRC:%.awk=$(bindir)/%)
-install:	$(C_MAIN:$(archdir)/%=$(bindir)/%)
+install:	install-shell

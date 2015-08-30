@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # AGENT.SH --background task daemon, via make..
 #
@@ -13,9 +13,10 @@
 # defined by a makefile.
 #
 #
-PATH=$PATH:/usr/libexec:/usr/local/libexec
-. core.shl
-require getopt.shl unit.shl daemon.shl
+. midden
+require getopt
+require unit
+require daemon
 
 #
 # usage() --echo this script's usage message.
