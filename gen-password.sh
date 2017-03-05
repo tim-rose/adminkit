@@ -3,7 +3,7 @@
 # GEN-PASSWORD --Generate a random password
 #
 length=16
-type='[:upper:][:lower:][:digit:]'
+type='[A-Z][a-z][0-9]'
 usage="Usage: gen-password [-n length] [-t type ]"
 
 while getopts "n:t:" c

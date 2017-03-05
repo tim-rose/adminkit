@@ -9,7 +9,7 @@
 #require log
 #require getopt
 
-usage="procwatch [-d delay] [-f format] command"
+usage="pstiche [-d delay] [-f format] command"
 delay=60
 values='pid,ppid,pid,user,pri,time,etime,pcpu,pmem,vsz,rss,comm'
 date_format='%Y-%m-%dT%H:%M:%S '
