@@ -7,19 +7,19 @@ MIDDEN_PATH=/usr/local/lib/sh
 require tap
 require test-more
 
-plan 4
+plan 5
 
-is "$(../src/errno 2)" \
-    '  2: ENOENT      No such file or directory' \
+is "$(../src/errno 4)" \
+    '  4: EINTR       Interrupted system call' \
     "find error by number"
 
-is "$(../src/errno ENOENT)" \
-    '  2: ENOENT      No such file or directory' \
+is "$(../src/errno EINTR)" \
+    '  4: EINTR       Interrupted system call' \
     "find error by code"
 
-is "$(../src/errno 'No such file')" \
-    '  2: ENOENT      No such file or directory' \
-    "find error by description"
+is "$(../src/errno 'system call')" \
+    '  4: EINTR       Interrupted system call' \
+    "find error by (approximate) description"
 
 expected="\
   4: EINTR       Interrupted system call
@@ -30,9 +30,8 @@ is "$(../src/errno 'system')" "$expected" \
     "find by description can return multiple results"
 
 expected="\
-  2: ENOENT      No such file or directory
-  4: EINTR       Interrupted system call"
+  4: EINTR       Interrupted system call
+ 34: ERANGE      Result too large"
 
-is "$(../src/errno 2 4)" "$expected" \
+is "$(../src/errno 4 34)" "$expected" \
     "can find by multiple arguments"
-
