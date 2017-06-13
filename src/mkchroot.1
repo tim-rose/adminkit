@@ -1,0 +1,127 @@
+.\" MKCHROOT.1 --Manual page for "mkchroot"
+.\"
+.\"
+.TH mkchroot 1 "" "" "Admin Kit"
+.SH NAME 
+mkchroot \- Create a chroot jail populated with some commands
+.SH SYNOPSIS
+.SY mkchroot
+.BI -r \ root
+.OP -u  user
+.OP -l
+.OP -d
+.OP -n
+.I commands ...
+.YS
+.SH DESCRIPTION
+The 
+.B mkchroot
+command creates a chroot jail directory populated with the specified
+commands.  Such a directory can be used by a 
+.SM FTP 
+server, and indeed
+this command is designed to make it easy to setup chroot jails for
+.SM FTP
+users.
+
+Within the chroot jail, 
+.B mkchroot
+creates a standard set of sub-directories 
+(i.e. 
+.IR bin , 
+.IR dev , 
+.IR etc , 
+.IR lib )
+and
+can also create a 
+.I ftp
+directory that can be used as the
+login directory for the 
+.SM FTP
+user.
+.PP
+.B mkchroot
+makes copies the commands specified into the
+.I /bin
+directory, and copies in any dynamic libraries needed
+into the 
+.IR /lib  
+directory.  It also links in the timezone
+files 
+.IR /etc/timezone , 
+and 
+.IR /etc/localtime ,
+so that the 
+.SM FTP
+session will have the correct time.
+.SH OPTIONS
+.TP 
+.BI \-r\  directory
+.TQ
+.BI \-\-root\fR=  directory
+Create the specified directory as the top of the chroot jail.
+All files and directories will be created within this directory.
+This option is mandatory.
+.TP
+.BI \-u\  user
+.TQ
+.BI \-\-user\fR= user
+Create a sample 
+.I /etc/passwd
+file containing the
+specified user.  Most of the data is copied from the actual user's 
+entry in the system-wide 
+.I /etc/passwd
+file, but the login directory
+will be set to 
+.IR /ftp , 
+which is also created.
+This option may only be specified at most once.
+.TP
+.B \-l
+.TQ
+.B \-\-link
+Link all files.  Normally
+.B mkchroot
+simply copies the files into the chroot area.  
+If the 
+.B -l
+option is specifed, the files are created by (hard) links.
+.TP
+.B \-n
+.TQ
+.B \-\-libnss
+Forcibly copy the current libnss files from 
+.IR /lib ,
+even if they are not referenced by any command.
+.TP
+.B \-d
+.TQ
+.B \-\-device
+Create device files (
+.IR /dev/null ,
+.IR /dev/zero ).
+This is needed by some 
+.SM FTP
+servers for correct operation.
+.SH "EXIT STATUS"
+.B mkchroot
+returns 2 if there was an error in the command line
+arguments, 1 if there were other processing errors.
+.SH "BUGS"
+Some commands dynamically load additional shared objects that are not
+revealed by 
+.BR ldd .
+Typical examples of this are
+.BR id (1)
+and 
+.BR groups (1),
+which load objects based on the values in "/etc/nsswitch.conf".
+If you want these commands to work, use the 
+.B --libnss
+option.
+
+.SH SEE ALSO
+.BR ln (1),
+.BR chroot (1),
+.BR ftpd (8)
