@@ -1,0 +1,28 @@
+.\" ERRNO.1 --Manual page for "errno"
+.\"
+.\"
+.TH errno 1 "" "" "Admin Kit"
+.SH NAME
+errno \- List the details about Unix errors
+.SH SYNOPSIS
+.SY errno
+.OP -f  error-file
+.IR errors ...
+.YS
+.SH DESCRIPTION
+The
+.B errno
+command searches for the specified words as a number, code, or
+matching text in the errors defined in the standard C library header
+file
+.IR /usr/include/sys/errno.h .
+.SH OPTIONS
+.TP
+.BI \-f\  error-file
+.TQ
+.BI \-\-file\fR=  error-file
+Search for error definitions in the specified file.
+.SH "EXIT STATUS"
+TBD
+.SH SEE ALSO
+.BR perror (1)

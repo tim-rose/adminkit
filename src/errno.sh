@@ -51,11 +51,10 @@ print_errno()
     local error=$1
 
     if [ "$error" ]; then
-	grep  -- "$error" "$errno_file" |
-            sed -ne '/^#define/s/^#define//p' |
+        sed -ne '/^#define/s/^#define//p' <$errno_file |
             while read code number description; do
 		match "$description" "*$error*"
-		if [ $? = 0 -o "$error" = "$code" -o "$error" = "$number" ]; then
+		if [ $? -eq 0 -o "$error" = "$code" -o "$error" = "$number" ]; then
                     description=${description%% [*]/} # strip comment delimtiters
                     description=${description##/[*]}
                     printf '%3d: %-10s %s\n' "$number" "$code" "$description"

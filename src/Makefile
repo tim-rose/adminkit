@@ -4,7 +4,7 @@
 #
 language = sh nroff
 
-MAN1_SRC = db-export.1 mkchroot.1
+MAN1_SRC = db-export.1 errno.1 mkchroot.1
 SH_SRC = agent.sh bloatfish.sh db-export.sh errno.sh ftp-delete.sh \
     ftp-upload.sh gen-password.sh mkchroot.sh nr-deploy.sh \
     procwatch.sh pstiche.sh shar.sh
