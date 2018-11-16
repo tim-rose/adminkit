@@ -78,8 +78,13 @@ archive_prologue()
 is_binary()
 {
     local file="$1"
-
-    test $(tr -d '\000\a\b\t\r\n\f\v !-~' <"$file" | wc -c) = ''
+    n=$(tr -d '\000\033\a\b\t\r\n\f\v !-~' <"$file" | wc -c)
+    if [ "$n" -ne 0 ]; then
+	debug '%s: contains %d unprintable characters' "$file" "$n"
+	true
+    else
+	false
+    fi
 }
 
 
