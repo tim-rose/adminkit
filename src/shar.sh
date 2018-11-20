@@ -2,12 +2,13 @@
 # shar: shell archiver
 #
 # Contents:
-# archive_prologue()   --Emit shar prologue.
+# readlink()           --Define readlink(1) as needed...
 # is_binary()          --Test if a file's content is "binary".
 # is_missing_nl()      --Test if a file is missing a newline at end of file.
+# archive_prologue()   --Emit shar prologue.
 # archive_checksum()   --Emit code to check the file integrity.
-# archive_dir()        --Emit archive code for a directory.
 # archive_overwrite_check() --Emit archive code to check for file overwrites.
+# archive_dir()        --Emit archive code for a directory.
 # archive_symlink()    --Emit archive code for a symlink.
 # archive_file()       --Emit archive code for a plain file.
 # main()               --Archive a list of files into a shell self-extracting archive
@@ -50,24 +51,23 @@ debug()		{ if [ "$debug" ]; then log_message "$@"; fi; }
 log_cmd()	{ debug "exec: %s" "$*"; "$@"; } >&2
 log_quit()	{ notice "$@"; exit 1 ; }
 
+#
+# readlink() --Define readlink(1) as needed...
+#
+if ! type readlink >/dev/null 2>&1; then
+    debug 'emulating readlink(1)'
+    readlink()
+    {
+	local file="$1"
+	if [ -h "$1" ]; then
+	    ls -l "$1" | sed -e 's/.* -> //'
+	    true
+	else
+	    false
+	fi
+    }
+fi
 
-#
-# archive_prologue() --Emit shar prologue.
-#
-archive_prologue()
-{
-    cat <<-EOF
-	#!/bin/sh
-	# shell archive created on $(date)
-	# by $USER@$(hostname) from directory $PWD
-	#
-	# Contents:
-	EOF
-    for file; do
-	echo "# $file"
-    done
-    echo "#"
-}
 
 #
 # is_binary() --Test if a file's content is "binary".
@@ -98,6 +98,26 @@ is_missing_nl()
     test "$(tail -c1 "$file")" != ""
 }
 
+
+#
+# archive_prologue() --Emit shar prologue.
+#
+archive_prologue()
+{
+    cat <<-EOF
+	#!/bin/sh
+	# shell archive created on $(date)
+	# by $USER@$(hostname) from directory $PWD
+	#
+	# Contents:
+	EOF
+    for file; do
+	echo "# $file"
+    done
+    echo "#"
+}
+
+
 #
 # archive_checksum() --Emit code to check the file integrity.
 #
@@ -117,6 +137,22 @@ archive_checksum()
 
 
 #
+# archive_overwrite_check() --Emit archive code to check for file overwrites.
+#
+archive_overwrite_check()
+{
+    if [ ! "$overwrite_ok" ]; then
+	cat <<-EOF
+	if [ -f "$file" ]; then
+	    file_comment="file exists, not overwritten"
+	    local_file="/dev/null"
+	fi
+	EOF
+    fi
+}
+
+
+#
 # archive_dir() --Emit archive code for a directory.
 #
 archive_dir()
@@ -130,22 +166,7 @@ archive_dir()
 	if [ ! -d $file ]; then mkdir \"$file\"; fi
 	EOF
     else				# emit code to make a directory
-	notice "%s: directory	(not archived)" "$file"
-    fi
-}
-
-#
-# archive_overwrite_check() --Emit archive code to check for file overwrites.
-#
-archive_overwrite_check()
-{
-    if [ ! "$overwrite_ok" ]; then
-	cat <<-EOF
-	if [ -f "$file" ]; then
-	    file_comment="file exists, not overwritten"
-	    local_file="/dev/null"
-	fi
-	EOF
+	notice "%s:\t(directory	(not archived)" "$file"
     fi
 }
 
@@ -176,11 +197,13 @@ archive_symlink()
 #
 # Remarks:
 # There a several special cases here:
-# * an empty file
-# * a symlink
-# * a "binary" file
 # * a "text" file
-# * @todo: a text file with a missing newline at end-of-file
+# * a "binary" file
+# * a symlink
+# * an empty file
+# * a text file with a missing newline at end-of-file
+#
+# @revisit: Save to temp file, then move if check-sum/exists check OK.
 #
 archive_file()
 {
@@ -197,12 +220,14 @@ archive_file()
 
     if [ -s "$file" ]; then
 	if is_binary "$file"; then
+	    info 'r %s\t(binary file)' "$file"
 	    echo "cat > $base.uu << '$eof_mark'"
 	    uuencode $uu_opts "$file" <"$file"
 	    echo "$eof_mark"
 	    echo "uudecode -o \"\$local_file\" \"$base.uu\" && rm \"$base.uu\""
 	    echo 'file_comment="${file_comment:-binary file}"'
 	elif is_missing_nl "$file"  ; then
+	    info 'r %s\t(missing-newline file)' "$file"
 	    echo "sed -e 's/^# //' > \$local_file << '$eof_mark'"
 	    sed -e "s/^/# /" "$file"
 	    printf "\n"		# add compensating newline
@@ -214,6 +239,7 @@ archive_file()
 		EOF
 		echo 'file_comment="${file_comment:-missing newline}"'
 	else
+	    info 'r %s' "$file"
 	    echo "sed -e 's/^# //' > \$local_file << '$eof_mark'"
 	    sed -e "s/^/# /" "$file"
 	    echo "$eof_mark"
@@ -223,6 +249,7 @@ archive_file()
 	    archive_checksum "$file"
 	fi
     else
+	info 'r %s\t(empty file)' "$file"
 	echo 'file_comment="${file_comment:-empty file}"'
 	echo "touch \"$file\""
     fi
@@ -244,10 +271,10 @@ main()
 	    archive_symlink "$file"
 	elif [ -f "$file" ]; then	# note: matches symlinks too
 	    archive_file "$file"
-	elif [ -e "$file" ]; then
-	    echo 'file_comment="file does not exist."'
+	elif [ ! -e "$file" ]; then
+	    notice 'r %s\tno such file (not archived)' "$file"
 	else
-	    echo 'file_comment="Unsupported file type (not archived)."'
+	    notice 'r %s\tunsupported file type (not archived)' "$file"
 	fi
 	echo "printf '\\\\t%s\\\\n' \"\$file_comment\""
     done

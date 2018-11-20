@@ -2,23 +2,25 @@
 #
 # test-errno --Tests for the errno command.
 #
-PATH=../src:$PATH
-MIDDEN_PATH=/usr/local/lib/sh
-. midden
-require tap
-require test-more
+PATH=../src:/usr/local/lib/sh:$PATH
 
+. tap.shl
 plan 5
 
-is "$(errno 4)" \
+if [ "$OS" = "darwin" ]; then
+    errno_opts='-f /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/sys/errno.h'
+fi
+
+
+is "$(errno $errno_opts 4)" \
     '  4: EINTR       Interrupted system call' \
     "find error by number"
 
-is "$(errno EINTR)" \
+is "$(errno $errno_opts EINTR)" \
     '  4: EINTR       Interrupted system call' \
     "find error by code"
 
-is "$(errno 'system call')" \
+is "$(errno $errno_opts 'system call')" \
     '  4: EINTR       Interrupted system call' \
     "find error by (approximate) description"
 
@@ -27,12 +29,12 @@ expected="\
  23: ENFILE      Too many open files in system
  30: EROFS       Read-only file system"
 
-is "$(errno 'system')" "$expected" \
+is "$(errno $errno_opts 'system')" "$expected" \
     "find by description can return multiple results"
 
 expected="\
   4: EINTR       Interrupted system call
  34: ERANGE      Result too large"
 
-is "$(errno 4 34)" "$expected" \
+is "$(errno $errno_opts 4 34)" "$expected" \
     "can find by multiple arguments"
