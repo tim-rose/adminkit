@@ -1,6 +1,11 @@
 #!/bin/sh
 #
-# test-errno --Tests for the errno command.
+# test-shar --Tests for the shar command.
+#
+# Contents:
+# shar_archive() --Create a shar archive from a data directory.
+# check_files()  --Check that the unpacked files match the originals.
+# check_shar()   --Perform a suite of tests on a shar.
 #
 PATH=:/usr/local/lib/sh:$PATH
 . log.shl
@@ -13,6 +18,15 @@ plan 14
 mkdir -p out
 atexit rm -rf out.sha out
 
+#
+# shar_archive() --Create a shar archive from a data directory.
+#
+# Parameter:
+# dir --the directory containing files/subdirs to archive
+#
+# Remarks:
+# The archive is written as "out.sha".
+#
 shar_archive()
 (
     local dir="${1:-.}"; shift
@@ -23,6 +37,9 @@ shar_archive()
 ) >out.sha
 
 
+#
+# check_files() --Check that the unpacked files match the originals.
+#
 check_files()
 {
     local src="$1"; shift
@@ -40,7 +57,10 @@ check_files()
 }
 
 
-shar_test()
+#
+# check_shar() --Perform a suite of tests on a shar.
+#
+check_shar()
 {
     local file="$1"
     shar_archive data/file "$file"
@@ -69,14 +89,13 @@ isnt "$?" "0" "non-existent file: shar command fails"
 is "$(ls -a out | wc -l)" "2" "non-existent file: archive creates no file"
 
 for file in $(cd data/file; find * -type f -o -type l); do
-    shar_test "$file"
+    check_shar "$file"
 done
 
-
 #
-# * directory behaviour
-# * symlink behaviour
-# * overwrite behaviour
-# * checksum behaviour
-# * uuencode options
+# @todo: directory behaviour
+# @todo: symlink behaviour
+# @todo: overwrite behaviour
+# @todo: checksum behaviour
+# @todo: uuencode options
 #
