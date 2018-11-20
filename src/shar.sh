@@ -18,8 +18,9 @@
 # -d  --generate code to do a mkdir(1) if file is a directory.
 # -e  --generate code to prevent overwriting existing files.
 # -h  --follow symlinks
-# -m  --encode binary files with base64 encoding
-# -v  --echo log messages to stderr.
+# -m  --encode binary files with base64 encoding (default is uuencode)
+# -q  --avoid echo log messages (to stderr).
+# -v  --echo log messages (to stderr).
 # arg1...argn	--files to be archived
 #
 # Remarks:
@@ -211,7 +212,6 @@ archive_file()
     dir=$(dirname "$file")
     eof_mark="[EOF@$file]"
 
-    info "r %s" "$file"
     cat <<-EOF
 	if [ ! -d "$dir" ]; then mkdir -p "$dir"; fi
 	local_file="$file"
@@ -261,24 +261,28 @@ archive_file()
 #
 main()
 {
+    local status=0
     archive_prologue "$@"
     for file; do
 	echo "printf 'x %s' '$file'"
 	echo "file_comment="
 	if [ -d "$file" ] ; then
-	    archive_dir "$file"
+	    archive_dir "$file" || status=1
 	elif [ -h "$file" -a  "$follow_symlink" ]; then
-	    archive_symlink "$file"
+	    archive_symlink "$file" || status=1
 	elif [ -f "$file" ]; then	# note: matches symlinks too
-	    archive_file "$file"
+	    archive_file "$file" || status=1
 	elif [ ! -e "$file" ]; then
 	    notice 'r %s\tno such file (not archived)' "$file"
+	    status=1
 	else
 	    notice 'r %s\tunsupported file type (not archived)' "$file"
+	    status=1
 	fi
 	echo "printf '\\\\t%s\\\\n' \"\$file_comment\""
     done
     #archive_epilogue
+    return "$status"
 }
 
 while getopts "$options" opt
