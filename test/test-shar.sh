@@ -14,9 +14,8 @@ PATH=:/usr/local/lib/sh:$PATH
 #
 # setup, define teardown
 #
-plan 14
 mkdir -p out
-atexit rm -rf out.sha out
+atexit rm -rf out.sha out files.txt
 
 #
 # shar_archive() --Create a shar archive from a data directory.
@@ -33,7 +32,7 @@ shar_archive()
     local root=$(echo "$dir" | sed -e 's|[^/]*|..|g')
 
     cd "$dir"
-    log_cmd sh $root/../src/shar.sh "$@"
+    log_cmd sh $root/../src/shar.sh -q "$@"
 ) >out.sha
 
 
@@ -82,20 +81,21 @@ isnt "$?" "0" "non-existent file: shar command fails"
 # * text files
 # * binary files
 # * missing eol files
-# * unsupported files
-# * "bad" names (e.g. w/ "bad file.txt"
 #
 (mkdir -p out && cd out && sh ../out.sha; rm -f out)
 is "$(ls -a out | wc -l)" "2" "non-existent file: archive creates no file"
 
-for file in $(cd data/file; find * -type f -o -type l); do
-    check_shar "$file"
-done
+(cd data/file; find * -type f -o -type l) > files.txt
+    while read file; do
+	check_shar "$file"
+    done < files.txt
 
 #
+# @todo: unsupported files (char special, fifo?)
 # @todo: directory behaviour
 # @todo: symlink behaviour
 # @todo: overwrite behaviour
-# @todo: checksum behaviour
 # @todo: uuencode options
+# @todo: file list from stdin
 #
+plan
