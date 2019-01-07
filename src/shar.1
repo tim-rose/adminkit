@@ -1,0 +1,57 @@
+.\" SHAR.1 --Manual page for "shar"
+.\"
+.\"
+.TH shar 1 "" "" "The Other Manual"
+.SH NAME
+shar \- Create a self-extracting shell archive
+.SH SYNOPSIS
+.SY shar
+.OP -d
+.OP -h
+.OP -m
+.OP -q
+.I files ...
+.YS
+.SH DESCRIPTION
+The
+.B shar
+command creates a self-extracting shell archive from a list of files.
+The files are specified either as command arguments, or (if none are
+supplied) read from
+.IR stdin .
+The archive is output to
+.IR stdout .
+A list of the archived files is output to
+.IR stderr .
+.SH OPTIONS
+.TP
+.B \-d
+Create directories.
+The default behaviour is to ignore directories.
+Use this option to create an archive that recreates (an empty) directory.
+.TP
+.B \-h
+Follow symlinks.  Normally
+.B shar
+simply archives the file as symlink.
+If the
+.B -h
+option is specifed, the linked-to files are archived.
+.TP
+.B \-m
+Archive binary files in Base64 format.  The default behaviour is to
+use
+.BR uuencode 's
+encoding format.
+.TP
+.B \-q
+Quiet mode: avoid printing the files being archived.
+.SH "EXIT STATUS"
+.B shar
+returns 2 if there was an error in the command line
+arguments, 1 if there was an error archiving a file.
+
+.SH SEE ALSO
+.BR ar (1),
+.BR tar (1),
+.BR uuencode (1)

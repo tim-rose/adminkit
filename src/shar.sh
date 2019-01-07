@@ -14,7 +14,6 @@
 #
 # Options:
 # -d  --generate code to do a mkdir(1) if file is a directory.
-# -e  --generate code to prevent overwriting existing files.
 # -h  --follow symlinks
 # -m  --encode binary files with base64 encoding (default is uuencode's default)
 # -q  --avoid echo log messages (to stderr).
@@ -29,10 +28,6 @@
 #
 # The archive created by shar may be unpacked by running it as a
 # Bourne shell script.
-#
-# @revisit: overwriting code is messy and buggy.
-# @todo: emit code that controls overwrite check when unpacking.
-# @todo: emit code to unpack specified items.
 #
 options=dhmvq_
 usage="Usage: shar -$options files... >archive"
@@ -192,9 +187,9 @@ archive_dir()
     local file="$1"
 
     if [ "$mkdir_ok" ] ; then
-	info "r %s\t(directory)" "$file"
+	notice "r %s\t(directory)" "$file"
 	cat <<- EOF
-	file_comment="directory"
+	note="directory"
 	if [ ! -d $file ]; then mkdir \"$file\"; fi
 	EOF
     else				# emit code to make a directory
@@ -215,9 +210,9 @@ archive_symlink()
     local file="$1" target="$(readlink "$file")"
     local dir=$(dirname "$file") base=$(basename "$file")
 
-    info "r %s\t(symlink)" "$file"
+    notice "r %s\t(symlink)" "$file"
     cat <<- EOF
-	file_comment="symlink to $target"
+	note="symlink to $target"
 	(cd "$dir" && ln -sf "$target" "$base")
 	EOF
 }
@@ -238,9 +233,9 @@ archive_symlink()
 #
 archive_file()
 {
-    base=$(basename "$file")
-    dir=$(dirname "$file")
-    eof_mark="[EOF@$file]"
+    local file="$1"
+    local dir=$(dirname "$file")
+    local eof_mark="[EOF@$file]"
 
     if [ "$dir" != '.' ]; then
 	cat <<- EOF
@@ -250,18 +245,18 @@ archive_file()
 
     if [ -s "$file" ]; then
 	if is_binary "$file"; then
-	    info 'r %s\t(binary file)' "$file"
-	    echo 'file_comment="binary file"'
+	    notice 'r %s\t(binary file)' "$file"
+	    echo 'note="binary file"'
 	    echo "cat > \"\$tmpfile.uu\" << '$eof_mark'"
 	    uuencode $uu_opts "$file" < "$file"
 	    echo "$eof_mark"
 	    echo 'uudecode -o "$tmpfile" "$tmpfile.uu" && rm "$tmpfile.uu"'
 	elif is_missing_nl "$file"  ; then
-	    info 'r %s\t(missing-newline file)' "$file"
-	    echo 'file_comment="missing newline"'
+	    notice 'r %s\t(missing-newline file)' "$file"
+	    echo 'note="missing newline"'
 	    echo "sed -e 's/^# //' > \"\$tmpfile.nl\" << '$eof_mark'"
 	    sed -e "s/^/# /" "$file"
-	    printf "\n"		# add compensating newline
+	    echo ""		# add compensating newline
 	    echo "$eof_mark"	# ...so eof mark is on a new line.
 	    cat <<- EOF		# emit code to remove compensating newline
 		file_size=\$(wc -c < "\$tmpfile.nl")
@@ -269,15 +264,15 @@ archive_file()
 		rm "\$tmpfile.nl"
 		EOF
 	else
-	    info 'r %s' "$file"
-	    echo 'file_comment="text file"'
+	    notice 'r %s' "$file"
+	    echo 'note="text file"'
 	    echo "sed -e 's/^# //' > \$tmpfile << '$eof_mark'"
 	    sed -e "s/^/# /" "$file"
 	    echo "$eof_mark"
 	fi
     else
-	info 'r %s\t(empty file)' "$file"
-	echo 'file_comment="empty file"'
+	notice 'r %s\t(empty file)' "$file"
+	echo 'note="empty file"'
 	echo "touch \"\$tmpfile\""
     fi
 }
@@ -293,7 +288,6 @@ main()
     argv_or_stdin "$@" |
 	{
 	    while read file; do
-		info 'archiving "%s"' "$file"
 		status=0
 		if [ -d "$file" ] ; then
 		    archive_dir "$file" || status=1
@@ -314,9 +308,9 @@ main()
 			    if [ ! -e "$file" -o "\$force" ]; then
 			        mv "\$tmpfile" "$file"
 			    else
-			        file_comment="file exists, not overwritten"
+			        note="file exists, not overwritten"
 			    fi
-			    printf 'x %s\t%s\n' '$file' "\$file_comment"
+			    printf 'x %s\t%s\n' '$file' "\$note"
 			fi
 			EOF
 		fi
