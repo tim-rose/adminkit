@@ -29,6 +29,10 @@
 # The archive created by shar may be unpacked by running it as a
 # Bourne shell script.
 #
+# @todo: preserve file permissions (use sed to construct arithmetic)
+#
+version=
+build=
 options=dhmvq_
 usage="Usage: shar -$options files... >archive"
 mkdir_ok=
@@ -75,7 +79,9 @@ argv_or_stdin()
     local arg
 
     if [ "$#" != "0" ]; then
-	for arg; do echo "$arg"; done
+	for arg; do
+	    echo "$arg";
+	done
     else
 	while read arg; do
 	    debug 'read arg: "%s"' "$arg"
@@ -184,16 +190,16 @@ archive_prologue()
 #
 archive_dir()
 {
-    local file="$1"
+    local dir="$1"
 
     if [ "$mkdir_ok" ] ; then
-	notice "r %s\t(directory)" "$file"
+	notice "r %s\tdirectory" "$dir"
 	cat <<- EOF
 	note="directory"
-	if [ ! -d $file ]; then mkdir \"$file\"; fi
+	if [ ! -d $dir ]; then mkdir \"$dir\"; fi
 	EOF
     else				# emit code to make a directory
-	notice "%s:\t(directory	(not archived)" "$file"
+	notice "%s:\tdirectory	(not archived)" "$dir"
     fi
 }
 
@@ -210,7 +216,7 @@ archive_symlink()
     local file="$1" target="$(readlink "$file")"
     local dir=$(dirname "$file") base=$(basename "$file")
 
-    notice "r %s\t(symlink)" "$file"
+    notice "r %s\tsymlink" "$file"
     cat <<- EOF
 	note="symlink to $target"
 	(cd "$dir" && ln -sf "$target" "$base")
@@ -264,15 +270,15 @@ archive_file()
 		rm "\$tmpfile.nl"
 		EOF
 	else
-	    notice 'r %s' "$file"
-	    echo 'note="text file"'
+	    notice 'r %s\ttext' "$file"
+	    echo 'note="text"'
 	    echo "sed -e 's/^# //' > \$tmpfile << '$eof_mark'"
 	    sed -e "s/^/# /" "$file"
 	    echo "$eof_mark"
 	fi
     else
-	notice 'r %s\t(empty file)' "$file"
-	echo 'note="empty file"'
+	notice 'r %s\tempty' "$file"
+	echo 'note="empty"'
 	echo "touch \"\$tmpfile\""
     fi
 }

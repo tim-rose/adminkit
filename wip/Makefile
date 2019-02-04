@@ -5,6 +5,10 @@
 # It has rules for building, but not installing.
 language = sh nroff
 
-SH_SRC = config-get.sh tint.sh
+SH_SRC = config-get.sh hr.sh tint.sh
 
 include devkit.mk 
+
+install: install-sh
+uninstall: uninstall-sh
+

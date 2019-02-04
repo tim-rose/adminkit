@@ -29,7 +29,7 @@ log_getopts
 main()
 {
     if [ ! -e "$errno_file" ]; then
-	log_quit 'cannot open error file "%s"' "$errno_file"
+	log_quit 'cannot open error definitions file "%s"' "$errno_file"
     fi
     for arg; do
 	print_errno "$arg"
